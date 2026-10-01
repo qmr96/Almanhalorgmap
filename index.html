@@ -64,6 +64,16 @@ aside{padding:14px}
 @media(max-width:700px){header{align-items:flex-start;flex-direction:column;padding:8px 9px}.brand{min-width:0;width:100%}.brand h1{font-size:14px}.toolbar{width:100%;gap:5px;overflow-x:auto;flex-wrap:nowrap;padding-bottom:2px;-webkit-overflow-scrolling:touch}.toolbar .search{min-width:150px;max-width:none}.btn,.select,.search{height:36px;padding:0 9px;flex:0 0 auto}.layout{grid-template-columns:1fr}aside{display:none}.map-shell{grid-column:1;min-height:0}.details{top:105px;width:96vw;max-height:calc(100vh - 115px);border-radius:12px 0 0 12px}.coverage{grid-template-columns:repeat(2,1fr)}.node{width:190px}.node.group{width:210px}.modal{padding:13px}.form-grid{grid-template-columns:1fr}.form-grid .full{grid-column:auto}}
 @media(min-width:701px) and (max-width:1000px){.details{top:56px}.layout{grid-template-columns:1fr}aside{display:none}}
 </style>
+
+<style>
+/* Live operating-map editor */
+#editBar{display:none;position:fixed;left:10px;right:10px;top:76px;z-index:20;background:#101a2e;border:1px solid #3b4b6a;border-radius:10px;padding:7px;box-shadow:0 10px 30px rgba(0,0,0,.35);gap:6px;align-items:center;flex-wrap:wrap}
+body.editing #editBar{display:flex}
+.edit-hint{font-size:11px;color:#aebbd0;margin-right:auto}.btn.danger{border-color:#7d3942;color:#ffb5bd}.btn.tool-on{background:#173d5d;border-color:#4c9ed1;color:#fff}
+.details.closed{display:none!important}.details.minimized{width:52px;padding:8px;overflow:hidden}.details.minimized>*:not(.details-top){display:none}.details-top{display:flex;gap:6px;align-items:center;justify-content:space-between;margin-bottom:8px;position:sticky;top:0;z-index:2;background:#0f1628;padding-bottom:6px}.details-top .dt-title{font-size:11px;color:#91a0ba;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.node.editable:hover{outline:2px dashed #70b7ff;outline-offset:3px;cursor:grab}.node.dragging{cursor:grabbing;opacity:.9}.edge.edit-selected{stroke-width:4!important;filter:drop-shadow(0 0 5px rgba(255,255,255,.35))}.evidence-list{display:flex;flex-direction:column;gap:6px}.evidence-item{padding:8px;border:1px solid #2b3953;border-radius:8px;background:#10192c}.evidence-item small{display:block;color:#93a2ba;margin-top:3px}.editor-wide{width:min(760px,94vw)}
+@media(max-width:1000px){#editBar{top:110px}.details.closed{display:none!important}.details.minimized{width:54px}}
+@media(max-width:700px){#editBar{left:6px;right:6px;top:110px;overflow-x:auto;flex-wrap:nowrap}.edit-hint{display:none}.details{top:105px}}
+</style>
 </head>
 <body>
 <div class="app">
@@ -92,6 +102,19 @@ aside{padding:14px}
     <button class="btn" id="fitBtn">Fit</button><button class="btn" id="detailsBtn">Details</button><button class="btn" id="dataBtn">Data</button><input type="file" id="importData" accept="application/json" hidden>
   </div>
 </header>
+<div id="editBar">
+  <span class="edit-hint">LIVE EDIT MODE — V1 content is preserved; layout/updates are stored as a separate working layer.</span>
+  <button class="btn tool" id="editModeBtn">✎ Edit mode</button>
+  <button class="btn tool" id="addNodeBtn">＋ Node</button>
+  <button class="btn tool" id="connectBtn">↔ Connect</button>
+  <button class="btn tool" id="editSelectedBtn">Edit selected</button>
+  <button class="btn danger" id="deleteSelectedBtn">Delete selected</button>
+  <button class="btn" id="saveProjectBtn">Save</button>
+  <button class="btn" id="exportProjectBtn">Export project</button>
+  <button class="btn" id="importProjectBtn">Import project</button>
+  <input type="file" id="importProject" accept="application/json" hidden>
+</div>
+
 <div class="layout">
 <aside id="sidebar"></aside>
 <main class="map-shell">
@@ -114,6 +137,34 @@ aside{padding:14px}
 <section class="details" id="details"><div class="empty">Select a node to inspect its V1-supported details.</div></section>
 </div>
 </div>
+
+<div class="modal-backdrop" id="nodeModal" aria-hidden="true"><div class="modal editor-wide" role="dialog" aria-modal="true">
+  <h2 id="nodeModalTitle">Edit Node</h2><small>Working-layer change. The original V1 node remains in DATA.</small>
+  <div class="form-grid">
+    <div><label>Label</label><input id="nmLabel"></div>
+    <div><label>Type</label><input id="nmType" placeholder="entity / process / transaction / person / system / gap"></div>
+    <div><label>Mode</label><select id="nmMode"><option value="current">CURRENT</option><option value="gaps">GAPS</option><option value="tobe">TO-BE</option></select></div>
+    <div><label>Section</label><input id="nmSection" placeholder="s1, s2…"></div>
+    <div><label>Page</label><input id="nmPage" type="number"></div>
+    <div><label>Owner / Who</label><input id="nmOwner"></div>
+    <div><label>System</label><input id="nmSystem"></div>
+    <div><label>Impact</label><input id="nmImpact"></div>
+    <div><label>X position</label><input id="nmX" type="number"></div>
+    <div><label>Y position</label><input id="nmY" type="number"></div>
+    <div class="full"><label>Summary</label><textarea id="nmSummary"></textarea></div>
+    <div class="full"><label>Details</label><textarea id="nmDetail"></textarea></div>
+    <div class="full"><label>Control</label><textarea id="nmControl"></textarea></div>
+  </div>
+  <div class="modal-actions"><button class="btn" id="nmCancel">Cancel</button><button class="btn active" id="nmSave">Save node</button></div>
+</div></div>
+<div class="modal-backdrop" id="edgeModal" aria-hidden="true"><div class="modal" role="dialog" aria-modal="true">
+  <h2>Connection</h2><small id="edgeSubtitle"></small>
+  <div class="form-grid">
+    <div><label>Connection type</label><select id="edgeType"><option>material</option><option>money</option><option>information</option><option>authority</option><option>system</option><option>inventory</option><option>gap</option></select></div>
+    <div class="full"><label>Label / explanation</label><input id="edgeLabel" placeholder="Optional description of what moves or connects"></div>
+  </div>
+  <div class="modal-actions"><button class="btn" id="edgeCancel">Cancel</button><button class="btn active" id="edgeSave">Save connection</button></div>
+</div></div>
 <div class="modal-backdrop" id="editorModal" aria-hidden="true"><div class="modal" role="dialog" aria-modal="true">
   <h2 id="editorTitle">Edit</h2><small id="editorSubtitle"></small>
   <div class="form-grid">
@@ -284,12 +335,11 @@ function render(){
 }
 function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 function select(id){
-  const n = byId(id);
+  const n=workingNode(id);
   if(state.view==='group' && n && ['depot','scientific','pharmacies','finance','gym','restaurant','turkey'].includes(id)){
-    const target = {depot:'depot',scientific:'scientific',pharmacies:'pharmacies',finance:'finance',gym:'gym',restaurant:'restaurant',turkey:'turkey'}[id];
-    state.history.push(state.view); state.view=target; state.selected=id; render();
-  } else { state.selected=id; render(); }
-  if(innerWidth<1000)details.classList.add('open')
+    state.history.push(state.view);state.view=id;state.selected=id;render();
+  }else{state.selected=id;render()}
+  openDetails();
 }
 function renderDetails(){
   let n=state.selected ? byId(state.selected) : null;
@@ -377,7 +427,103 @@ function endPointer(e){pointers.delete(e.pointerId);dragging=false;if(viewport.h
 viewport.addEventListener('wheel',e=>{e.preventDefault();state.scale=Math.max(.45,Math.min(2.2,state.scale*(e.deltaY<0?1.08:.92)));applyTransform()},{passive:false});
 
 window.addEventListener('keydown',e=>{if(e.key==='Escape'){if(editorModal.classList.contains('open'))closeEditor();else{state.selected=null;details.classList.remove('open');render()}} if(e.key==='+'||e.key==='='){state.scale=Math.min(2.2,state.scale*1.15);applyTransform()} if(e.key==='-'){state.scale=Math.max(.45,state.scale/1.15);applyTransform()}});
-render();applyTransform();setTimeout(fitMap,50);
+/* ===== Live working-layer editor ===== */
+const EDIT_KEY='nael_operating_map_live_v2';
+let LIVE={nodes:{},edges:[],meta:{updated:null}};
+try{LIVE=JSON.parse(localStorage.getItem(EDIT_KEY)||'{}')||LIVE}catch(e){}
+LIVE.nodes=LIVE.nodes||{};LIVE.edges=Array.isArray(LIVE.edges)?LIVE.edges:[];LIVE.meta=LIVE.meta||{};
+let editMode=false, connectMode=false, connectFrom=null, nodeEditing=null, edgeEditing=null;
+const nodeModal=document.getElementById('nodeModal'), edgeModal=document.getElementById('edgeModal');
+function saveLive(){LIVE.meta.updated=new Date().toISOString();try{localStorage.setItem(EDIT_KEY,JSON.stringify(LIVE))}catch(e){alert('Browser storage is full. Export the project to save a backup.')}}
+function cloneBaseNode(n){return {...n}}
+function mergedNode(n){const o=LIVE.nodes[n.id]||{};return Object.assign(cloneBaseNode(n),o,{x:o.x??n.x,y:o.y??n.y})}
+function allWorkingNodes(){return DATA.nodes.map(mergedNode).concat(Object.values(LIVE.nodes).filter(o=>o&&o._new).map(o=>({...o})))}
+function workingEdges(){
+  const base=DATA.connections.map((c,i)=>{const ov=LIVE.edges[i]||{};return ov.deleted?null:{from:ov.from||c[0],to:ov.to||c[1],type:ov.type||c[2],label:ov.label||'',_baseIndex:i}}).filter(Boolean);
+  return base.concat(LIVE.edges.filter(e=>e&&e._new&&!e.deleted).map(e=>({...e,_baseIndex:-1})));
+}
+function workingNode(id){return allWorkingNodes().find(n=>n.id===id)}
+function workingEdge(i){return workingEdges()[i]}
+function setNodePos(id,x,y){LIVE.nodes[id]={...(LIVE.nodes[id]||{}),x:Math.round(x),y:Math.round(y)};saveLive()}
+function closeDetails(){details.classList.add('closed');details.classList.remove('open','minimized')}
+function minimizeDetails(){details.classList.add('minimized');details.classList.remove('closed','open')}
+function openDetails(){details.classList.remove('closed','minimized');if(innerWidth<1000)details.classList.add('open')}
+function detailTop(){return `<div class="details-top"><span class="dt-title">Node details</span><span><button class="btn small" onclick="minimizeDetails()">—</button> <button class="btn small" onclick="closeDetails()">×</button></span></div>`}
+function openNodeModal(id){nodeEditing=id||null;const n=id?workingNode(id):{label:'New node',type:'process',mode:state.mode==='tobe'?'tobe':state.mode==='gaps'?'gaps':'current',section:'s11',page:11,owner:'',system:'',impact:'',summary:'',detail:'',control:'',x:300,y:300};document.getElementById('nodeModalTitle').textContent=id?'Edit node':'Add node';
+[['nmLabel',n.label],['nmType',n.type],['nmSection',n.section],['nmPage',n.page],['nmOwner',n.owner],['nmSystem',n.system],['nmImpact',n.impact],['nmX',n.x??300],['nmY',n.y??300],['nmSummary',n.summary],['nmDetail',n.detail],['nmControl',n.control]].forEach(([k,v])=>document.getElementById(k).value=v??'');document.getElementById('nmMode').value=n.mode||'current';nodeModal.classList.add('open');nodeModal.setAttribute('aria-hidden','false')}
+function closeNodeModal(){nodeEditing=null;nodeModal.classList.remove('open');nodeModal.setAttribute('aria-hidden','true')}
+function saveNodeModal(){const id=nodeEditing||('user-node-'+Date.now());const n={id,label:document.getElementById('nmLabel').value.trim()||'Untitled node',type:document.getElementById('nmType').value.trim()||'process',mode:document.getElementById('nmMode').value,section:document.getElementById('nmSection').value.trim()||'s11',page:Number(document.getElementById('nmPage').value)||11,owner:document.getElementById('nmOwner').value,system:document.getElementById('nmSystem').value,impact:document.getElementById('nmImpact').value,summary:document.getElementById('nmSummary').value,detail:document.getElementById('nmDetail').value,control:document.getElementById('nmControl').value,x:Number(document.getElementById('nmX').value)||300,y:Number(document.getElementById('nmY').value)||300};
+if(!nodeEditing)n._new=true;LIVE.nodes[id]={...(LIVE.nodes[id]||{}),...n};saveLive();closeNodeModal();state.selected=id;openDetails();render()}
+function openEdgeModal(from,to){edgeEditing={from,to};document.getElementById('edgeSubtitle').textContent=`${workingNode(from)?.label||from} → ${workingNode(to)?.label||to}`;document.getElementById('edgeType').value='information';document.getElementById('edgeLabel').value='';edgeModal.classList.add('open');edgeModal.setAttribute('aria-hidden','false')}
+function closeEdgeModal(){edgeEditing=null;edgeModal.classList.remove('open');edgeModal.setAttribute('aria-hidden','true')}
+function saveEdgeModal(){if(!edgeEditing)return;LIVE.edges.push({_new:true,from:edgeEditing.from,to:edgeEditing.to,type:document.getElementById('edgeType').value,label:document.getElementById('edgeLabel').value});saveLive();closeEdgeModal();connectMode=false;connectFrom=null;document.getElementById('connectBtn').classList.remove('tool-on');render()}
+function deleteSelected(){if(!state.selected)return;const id=state.selected;if(confirm('Delete this working-map node? The original V1 node is preserved and can be restored by clearing the working layer.')){if(DATA.nodes.some(n=>n.id===id))LIVE.nodes[id]={...(LIVE.nodes[id]||{}),deleted:true};else delete LIVE.nodes[id];LIVE.edges.forEach(e=>{if(e.from===id||e.to===id)e.deleted=true});saveLive();state.selected=null;render()}}
+function exportProject(){const payload={format:'NAEL-LIVE-MAP',version:2,base:'NAEL Business Operating Map V1',savedAt:new Date().toISOString(),live:LIVE,userOverlay:USER};const a=document.createElement('a');a.href='data:application/json;charset=utf-8,'+encodeURIComponent(JSON.stringify(payload));a.download='NAEL_Business_Operating_Map_Live_Project.json';a.click()}
+function importProject(file){const r=new FileReader();r.onload=()=>{try{const p=JSON.parse(r.result);if(p.live)LIVE=p.live;if(p.userOverlay)USER=p.userOverlay;saveLive();saveUser();render();alert('Project imported. V1 source data was not replaced; only the working layer was loaded.')}catch(e){alert('Invalid project file.')}};r.readAsText(file)}
+function liveVisibleNodes(base){
+  const raw=base.map(mergedNode);const allowed=new Set(currentViewNodes().map(n=>n.id));
+  const extras=Object.values(LIVE.nodes).filter(n=>n&&n._new&&!n.deleted).map(n=>({...n})).filter(n=>{
+    if(state.view==='group')return true;
+    if(state.view==='gaps')return n.mode==='gaps';
+    if(state.view==='tobe')return n.mode==='tobe';
+    return n.mode===state.mode||allowed.has(n.id);
+  });
+  const combined=raw.concat(extras).filter(n=>{if(state.query){const q=state.query.toLowerCase();if(!(`${n.label} ${n.summary||''} ${n.detail||''}`.toLowerCase().includes(q)))return false}if(state.type!=='all'&&n.type!==state.type)return false;return true});
+  return combined.filter(n=>!LIVE.nodes[n.id]?.deleted);
+}
+function renderLive(){
+  document.getElementById('mode').value=state.mode;document.getElementById('typeFilter').value=state.type;document.getElementById('search').value=state.query;
+  world.querySelectorAll('.node,.container,.view-title').forEach(e=>e.remove());edges.querySelectorAll('.edge,.edge-label').forEach(e=>e.remove());
+  let nodes=liveVisibleNodes(currentViewNodes().map(mergedNode));
+  const ids=new Set(nodes.map(n=>n.id));
+  if(!nodes.length){world.insertAdjacentHTML('beforeend','<div class="empty" style="position:absolute;inset:0;width:100vw">No matching nodes in this mode/filter.</div>');renderSidebar();return}
+  const pos=fitPositions(nodes);nodes.forEach(n=>{if(LIVE.nodes[n.id]?.x!=null)pos[n.id]=[LIVE.nodes[n.id].x,LIVE.nodes[n.id].y]});
+  nodes.forEach(n=>{const p=pos[n.id]||[n.x||100,n.y||100];n.x=p[0];n.y=p[1];n._w=n.type==='group'?230:nodeSize();n._h=82;const el=document.createElement('div');el.className='node '+n.type+(editMode?' editable':'');el.dataset.id=n.id;el.style.left=n.x+'px';el.style.top=n.y+'px';el.innerHTML=`<div class="title">${esc(n.label)}</div><div class="meta"><span class="pill ${n.mode==='tobe'?'tobe':n.mode==='gaps'?'gaps':'current'}">${(n.mode||'current').toUpperCase()}</span><span class="pill">§${n.section?.replace('s','')||''} · p.${n.page||''}</span>${hasOverlay(n.id)||LIVE.nodes[n.id]?' <span class="pill" style="color:#8dd694">EDITED</span>':''}</div>`;
+    el.onclick=e=>{e.stopPropagation();if(connectMode){if(!connectFrom){connectFrom=n.id;el.classList.add('selected');state.selected=n.id;render();return}if(connectFrom!==n.id){openEdgeModal(connectFrom,n.id)}return}select(n.id)};
+    if(state.selected===n.id)el.classList.add('selected');
+    if(editMode)el.onpointerdown=e=>startNodeDrag(e,n.id,el);
+    world.appendChild(el);
+  });
+  const nodeMap=new Map(nodes.map(n=>[n.id,n]));workingEdges().forEach((c,idx)=>{if(!ids.has(c.from)||!ids.has(c.to)||c.deleted)return;const a=nodeMap.get(c.from),b=nodeMap.get(c.to);const path=document.createElementNS('http://www.w3.org/2000/svg','path');path.setAttribute('d',route(a,b));path.setAttribute('class','edge '+(c.type||'information')+(state.selected&&(state.selected===c.from||state.selected===c.to)?' highlight':'') );path.setAttribute('marker-end',`url(#arrow-${c.type||'information'})`);path.dataset.edge=idx;if(editMode){path.style.pointerEvents='stroke';path.onclick=e=>{e.stopPropagation();if(confirm('Delete this connection?')){const baseCount=DATA.connections.length; const baseIndex=c._baseIndex; if(baseIndex>=0)LIVE.edges[baseIndex]={...(LIVE.edges[baseIndex]||{}),deleted:true}; else {const ni=LIVE.edges.findIndex(e=>e&&e._new&&e.from===c.from&&e.to===c.to&&e.type===c.type);if(ni>=0)LIVE.edges[ni].deleted=true;}saveLive();render()}}}edges.appendChild(path)});
+  renderSidebar();renderDetails();
+}
+function startNodeDrag(e,id,el){if(!editMode||connectMode)return;e.preventDefault();el.classList.add('dragging');const startX=e.clientX,startY=e.clientY;const ox=workingNode(id).x||parseFloat(el.style.left),oy=workingNode(id).y||parseFloat(el.style.top);const move=ev=>{const x=ox+(ev.clientX-startX)/state.scale,y=oy+(ev.clientY-startY)/state.scale;el.style.left=x+'px';el.style.top=y+'px';LIVE.nodes[id]={...(LIVE.nodes[id]||{}),x:Math.round(x),y:Math.round(y)};renderEdgesOnly()};const up=()=>{el.classList.remove('dragging');saveLive();window.removeEventListener('pointermove',move);window.removeEventListener('pointerup',up)};window.addEventListener('pointermove',move);window.addEventListener('pointerup',up)}
+function renderEdgesOnly(){const nodes=[...world.querySelectorAll('.node')].map(el=>{const n=workingNode(el.dataset.id)||{};return {...n,x:parseFloat(el.style.left),y:parseFloat(el.style.top),_w:n.type==='group'?230:nodeSize(),_h:82}}),m=new Map(nodes.map(n=>[n.id,n]));edges.querySelectorAll('.edge').forEach(path=>{const i=Number(path.dataset.edge);const c=workingEdges()[i];if(c&&m.has(c.from)&&m.has(c.to))path.setAttribute('d',route(m.get(c.from),m.get(c.to)))});applyTransform()}
+// Replace render globally with working-layer renderer.
+render=renderLive;
+// Robust details close/minimize and evidence UI.
+renderDetails=function(){
+  const n=state.selected?workingNode(state.selected):null;
+  if(!n){details.innerHTML=detailTop()+`<div class="empty">Select a node to inspect it.</div>`;return}
+  const connected=workingEdges().filter(c=>c.from===n.id||c.to===n.id);
+  const connNames=connected.map(c=>`${c.from===n.id?'→':'←'} ${esc(workingNode(c.from===n.id?c.to:c.from)?.label||'')} <span class="pill">${esc(c.type||'')}</span>${c.label?` <span style="color:#8292ad">— ${esc(c.label)}</span>`:''}`).join('<br>');
+  const u=userOverlay(n.id);details.innerHTML=`${detailTop()}<div class="path"><span class="crumb" onclick="setView('group',true)">Home</span> / <span>${esc(n.label)}</span></div><h2>${esc(n.label)}</h2><div class="source">Source: NAEL V1 — Section ${esc(String(n.section||'').replace('s',''))} + Page ${n.page||''}</div><div class="mode-note"><b>${n.mode==='tobe'?'TO-BE':n.mode==='gaps'?'GAP':'CURRENT'}</b> · ${esc(n.summary||'')}</div><div class="action-row"><button class="btn small active" onclick="openNodeModal('${n.id}')">✎ Edit block</button><button class="btn small" onclick="openEditor('${n.id}')">Verification</button><button class="btn small" onclick="minimizeDetails()">Minimize</button><button class="btn small" onclick="closeDetails()">Close</button></div><h3>Details</h3><div class="detail-box">${esc(n.detail||'')}</div><h3>Responsibility / system</h3><div class="detail-box"><div class="kv"><b>Who</b><span>${esc(n.owner||'Not specified')}</span><b>System</b><span>${esc(n.system||'Not specified')}</span><b>Impact</b><span>${esc(n.impact||'Not specified')}</span><b>Control</b><span>${esc(n.control||'Not specified')}</span></div></div>${u?`<h3>User verification</h3><div class="detail-box user-note"><div class="kv"><b>Status</b><span>${esc(u.status||'')}</span><b>By</b><span>${esc(u.owner||'')}</span><b>Evidence</b><span>${esc(u.evidence||'')}</span></div><hr style="border:0;border-top:1px solid #293650;margin:10px 0"><div>${esc(u.info||'')}</div>${u.notes?`<div style="margin-top:8px;color:#aab6ca">${esc(u.notes)}</div>`:''}</div>`:''}<h3>Evidence files</h3><div class="detail-box"><button class="btn small" onclick="document.getElementById('evidenceInput').click()">＋ Upload evidence</button><input id="evidenceInput" type="file" hidden multiple onchange="uploadEvidence(this.files,'${n.id}')"><div id="evidenceList" class="evidence-list" style="margin-top:8px"></div></div><h3>Connected paths</h3><div class="detail-box">${connNames||'No direct connection recorded.'}</div><h3>Traceability</h3><div class="detail-box">NAEL Almnhal — Business & Operations Book | V1 · §${esc(String(n.section||'').replace('s',''))} · p.${n.page||''}. V1 remains the source baseline; working-layer changes are separate.</div>`;
+  loadEvidenceList(n.id);
+};
+const DB_NAME='nael_map_evidence_v1',DB_STORE='files';
+function dbOpen(){return new Promise((res,rej)=>{const r=indexedDB.open(DB_NAME,1);r.onupgradeneeded=()=>r.result.createObjectStore(DB_STORE,{keyPath:'id'});r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)})}
+async function uploadEvidence(files,nodeId){try{const db=await dbOpen();for(const f of files){const tx=db.transaction(DB_STORE,'readwrite');tx.objectStore(DB_STORE).put({id:nodeId+'_'+Date.now()+'_'+Math.random().toString(36).slice(2),nodeId,name:f.name,type:f.type,size:f.size,updated:new Date().toISOString(),blob:f});await new Promise(r=>tx.oncomplete=r)}loadEvidenceList(nodeId)}catch(e){alert('Could not store the evidence file in this browser.')}}
+async function loadEvidenceList(nodeId){const box=document.getElementById('evidenceList');if(!box)return;try{const db=await dbOpen(),tx=db.transaction(DB_STORE,'readonly'),req=tx.objectStore(DB_STORE).getAll();req.onsuccess=()=>{box.innerHTML=req.result.filter(x=>x.nodeId===nodeId).map(x=>`<div class="evidence-item"><b>${esc(x.name)}</b><small>${Math.round(x.size/1024)} KB · ${new Date(x.updated).toLocaleString()}</small><div style="margin-top:6px"><button class="btn small" onclick="openEvidence('${x.id}')">Open</button> <button class="btn small danger" onclick="deleteEvidence('${x.id}','${nodeId}')">Delete</button></div></div>`).join('')||'<span style="color:#8292ad">No evidence attached yet.</span>'}}catch(e){box.innerHTML='<span style="color:#8292ad">Evidence storage unavailable.</span>'}}
+async function openEvidence(id){const db=await dbOpen(),tx=db.transaction(DB_STORE,'readonly'),req=tx.objectStore(DB_STORE).get(id);req.onsuccess=()=>{const x=req.result;if(!x)return;const url=URL.createObjectURL(x.blob);window.open(url,'_blank');setTimeout(()=>URL.revokeObjectURL(url),60000)}}
+async function deleteEvidence(id,nodeId){const db=await dbOpen();const tx=db.transaction(DB_STORE,'readwrite');tx.objectStore(DB_STORE).delete(id);tx.oncomplete=()=>loadEvidenceList(nodeId)}
+// toolbar behavior
+const editModeBtn=document.getElementById('editModeBtn');editModeBtn.onclick=()=>{editMode=!editMode;document.body.classList.toggle('editing',editMode);editModeBtn.classList.toggle('tool-on',editMode);render()};
+document.getElementById('addNodeBtn').onclick=()=>{editMode=true;document.body.classList.add('editing');editModeBtn.classList.add('tool-on');openNodeModal()};
+document.getElementById('connectBtn').onclick=()=>{editMode=true;connectMode=!connectMode;connectFrom=null;document.body.classList.add('editing');editModeBtn.classList.add('tool-on');document.getElementById('connectBtn').classList.toggle('tool-on',connectMode);render()};
+document.getElementById('editSelectedBtn').onclick=()=>state.selected?openNodeModal(state.selected):alert('Select a node first.');
+document.getElementById('deleteSelectedBtn').onclick=deleteSelected;
+document.getElementById('saveProjectBtn').onclick=()=>{saveLive();saveUser();alert('Working map saved in this browser.')};
+document.getElementById('exportProjectBtn').onclick=exportProject;
+document.getElementById('importProjectBtn').onclick=()=>document.getElementById('importProject').click();document.getElementById('importProject').onchange=e=>{if(e.target.files[0])importProject(e.target.files[0])};
+document.getElementById('nmCancel').onclick=closeNodeModal;document.getElementById('nmSave').onclick=saveNodeModal;nodeModal.addEventListener('click',e=>{if(e.target===nodeModal)closeNodeModal()});
+document.getElementById('edgeCancel').onclick=closeEdgeModal;document.getElementById('edgeSave').onclick=saveEdgeModal;edgeModal.addEventListener('click',e=>{if(e.target===edgeModal)closeEdgeModal()});
+// Make the old details button always reopen; Data remains V1 overlay export, while Project export handles full working map.
+document.getElementById('detailsBtn').onclick=openDetails;
+// Close details on Escape, including mobile drawer.
+const oldKeyHandler=window.onkeydown;window.addEventListener('keydown',e=>{if(e.key==='Escape'){if(nodeModal.classList.contains('open'))closeNodeModal();else if(edgeModal.classList.contains('open'))closeEdgeModal();else if(editorModal.classList.contains('open'))closeEditor();else closeDetails()}});
+// Override final render invocation below.
+render();applyTransform();setTimeout(fitMap,80);
+
 </script>
 </body>
 </html>
