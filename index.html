@@ -1,0 +1,383 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>NAEL Almnhal — Business Operating Map V1</title>
+<style>
+:root{
+  --bg:#0b1020;--panel:#11182b;--panel2:#172039;--card:#1b2741;--text:#edf3ff;--muted:#9caac4;
+  --line:#42506b;--accent:#5ea8ff;--current:#4fb3ff;--gap:#ffb454;--tobe:#8dd694;
+  --material:#4fb3ff;--money:#c68cff;--information:#68d6b0;--authority:#ffcf6e;--system:#6ecbff;--inventory:#ff8c8c;
+  --danger:#ff7676;--shadow:0 14px 36px rgba(0,0,0,.28);
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--text);font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;overflow:hidden}
+body.modal-open{overflow:hidden}
+button,input,select{font:inherit}
+button{cursor:pointer}
+.app{display:grid;grid-template-rows:auto 1fr;height:100%}
+header{background:#0d1426;border-bottom:1px solid #27324b;padding:10px 14px;display:flex;gap:12px;align-items:center;z-index:10}
+.brand{min-width:250px}.brand h1{font-size:16px;margin:0}.brand small{color:var(--muted)}
+.toolbar{display:flex;gap:7px;align-items:center;flex:1;flex-wrap:wrap}
+.btn,.select,.search{height:36px;border:1px solid #33405d;background:#172039;color:var(--text);border-radius:8px;padding:0 11px}
+.btn:hover{background:#202d49}.btn.active{outline:2px solid var(--accent);background:#203250}
+.search{flex:1;min-width:180px;max-width:360px}
+.layout{display:grid;grid-template-columns:280px 1fr 340px;min-height:0}
+aside,.details{background:#0f1628;border-right:1px solid #27324b;overflow:auto}
+.details{border-right:0;border-left:1px solid #27324b;padding:16px}
+aside{padding:14px}
+.side-title{font-size:12px;text-transform:uppercase;letter-spacing:.12em;color:#7f8daa;margin:12px 0 8px}
+.nav-item{display:flex;align-items:center;justify-content:space-between;width:100%;padding:9px 10px;border-radius:8px;border:1px solid transparent;background:transparent;color:var(--text);text-align:left;margin-bottom:3px}
+.nav-item:hover{background:#172039}.nav-item.active{background:#1c2c48;border-color:#314a70}
+.badge{font-size:10px;padding:2px 6px;border-radius:999px;background:#25314a;color:#b7c4da}
+.map-shell{position:relative;overflow:hidden;background:
+ radial-gradient(circle at 20% 20%,rgba(94,168,255,.06),transparent 28%),
+ radial-gradient(circle at 80% 70%,rgba(141,214,148,.05),transparent 30%),
+ #0b1020}
+#viewport{position:absolute;inset:0;overflow:hidden;touch-action:none}
+#world{position:absolute;left:0;top:0;width:2400px;height:1450px;transform-origin:0 0}
+#edges{position:absolute;left:0;top:0;width:2400px;height:1450px;pointer-events:none;overflow:visible}
+.edge{fill:none;stroke-width:2.2;opacity:.72}.edge.material{stroke:var(--material)}.edge.money{stroke:var(--money)}.edge.information{stroke:var(--information)}
+.edge.authority{stroke:var(--authority)}.edge.system{stroke:var(--system)}.edge.inventory{stroke:var(--inventory)}.edge.gap{stroke:var(--gap);stroke-dasharray:7 6}
+.edge.dim{opacity:.08}.edge.highlight{opacity:1;stroke-width:4}
+.edge-label{font-size:11px;fill:#aebbd1;paint-order:stroke;stroke:#0b1020;stroke-width:4px}
+.node{position:absolute;width:210px;min-height:82px;background:var(--card);border:1px solid #344361;border-radius:10px;padding:10px 11px;box-shadow:var(--shadow);user-select:none;cursor:pointer}
+.node:hover{border-color:#6a84ae}.node.selected{border:2px solid var(--accent);box-shadow:0 0 0 4px rgba(94,168,255,.12),var(--shadow)}
+.node.dim{opacity:.15}.node .title{font-size:13px;font-weight:750;line-height:1.2}.node .meta{font-size:10px;color:var(--muted);margin-top:7px;display:flex;gap:5px;flex-wrap:wrap}
+.pill{padding:2px 6px;border-radius:999px;background:#25314a}.pill.current{color:var(--current)}.pill.gaps{color:var(--gap)}.pill.tobe{color:var(--tobe)}
+.node.entity{border-left:4px solid var(--current)}.node.person{border-left:4px solid var(--authority)}.node.finance{border-left:4px solid var(--money)}
+.node.process{border-left:4px solid var(--information)}.node.transaction{border-left:4px solid var(--material)}.node.system{border-left:4px solid var(--system)}
+.node.gap{border-left:4px solid var(--gap);background:#2a2419}.node.tobe{border-left:4px solid var(--tobe);background:#18251c}.node.group{width:230px;background:#1c2a44;border:2px solid #5478a9}
+.container{position:absolute;border:1px dashed #33415e;border-radius:14px;background:rgba(18,26,44,.25);pointer-events:none}
+.container h3{position:absolute;top:-13px;left:16px;background:#0b1020;padding:0 7px;font-size:11px;color:#8292ad;text-transform:uppercase;letter-spacing:.1em}
+.empty{display:flex;align-items:center;justify-content:center;height:100%;color:var(--muted);text-align:center;padding:30px}
+.details{overscroll-behavior:contain}.details h2{font-size:19px;margin:0 0 8px}.details .source{font-size:11px;color:#91a0ba;margin:4px 0 14px}.details h3{font-size:11px;text-transform:uppercase;letter-spacing:.1em;color:#8292ad;margin:18px 0 7px}
+.detail-box{background:#141e34;border:1px solid #293650;border-radius:9px;padding:10px;font-size:13px;line-height:1.5}
+.kv{display:grid;grid-template-columns:90px 1fr;gap:7px;font-size:12px}.kv b{color:#8392ab}
+.path{display:flex;gap:5px;align-items:center;flex-wrap:wrap;color:#9aa8c0;font-size:11px;margin-bottom:12px}.crumb{color:#dce6f8;cursor:pointer}.crumb:hover{text-decoration:underline}
+.legend{display:grid;grid-template-columns:1fr 1fr;gap:6px}.legend div{font-size:11px;color:#b8c4d7;display:flex;align-items:center;gap:7px}.dot{width:18px;height:3px;border-radius:4px}
+.coverage{display:grid;grid-template-columns:repeat(4,1fr);gap:7px}.sec{padding:7px;border-radius:7px;border:1px solid #2d3a54;font-size:10px;background:#141e34}.sec.ok{border-color:#3c7750}.sec.gap{border-color:#86653a}
+.gap-row{padding:10px;border:1px solid #3a3340;background:#1b1a20;border-radius:8px;margin-bottom:7px;cursor:pointer}.gap-row:hover{border-color:#6c5970}.gap-row strong{font-size:12px}.gap-row small{display:block;color:#a6b1c4;margin-top:4px}
+.action-row{display:flex;gap:7px;flex-wrap:wrap;margin:10px 0}.btn.small{height:32px;padding:0 9px;font-size:12px}.user-note{border-color:#41607f;background:#12243a}.gap-status{display:inline-block;padding:3px 7px;border-radius:999px;font-size:10px;background:#2a2419;color:#ffcf82}.modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.68);display:none;align-items:center;justify-content:center;z-index:50;padding:14px}.modal-backdrop.open{display:flex}.modal{width:min(720px,96vw);max-height:92vh;overflow:auto;background:#10182b;border:1px solid #354563;border-radius:14px;box-shadow:0 24px 70px rgba(0,0,0,.5);padding:16px}.modal h2{margin:0 0 5px;font-size:18px}.modal small{color:var(--muted)}.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px}.form-grid .full{grid-column:1/-1}.form-grid label{display:block;font-size:11px;color:#93a2bc;margin-bottom:5px}.form-grid input,.form-grid textarea,.form-grid select{width:100%;background:#0b1222;border:1px solid #33405d;color:var(--text);border-radius:8px;padding:9px}.form-grid textarea{min-height:100px;resize:vertical}.modal-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:14px}.mode-note{padding:8px 10px;border-radius:8px;background:#141e34;border:1px solid #2b3852;font-size:11px;color:#aab6ca;line-height:1.45}
+@media(max-width:1000px){.layout{grid-template-columns:1fr}.details{position:absolute;right:0;top:56px;bottom:0;width:min(88vw,380px);transform:translateX(100%);transition:.2s;z-index:8}.details.open{transform:translateX(0)}.brand{min-width:180px}.coverage{grid-template-columns:repeat(3,1fr)}}
+@media(max-width:700px){header{align-items:flex-start;flex-direction:column;padding:8px 9px}.brand{min-width:0;width:100%}.brand h1{font-size:14px}.toolbar{width:100%;gap:5px;overflow-x:auto;flex-wrap:nowrap;padding-bottom:2px;-webkit-overflow-scrolling:touch}.toolbar .search{min-width:150px;max-width:none}.btn,.select,.search{height:36px;padding:0 9px;flex:0 0 auto}.layout{grid-template-columns:1fr}aside{display:none}.map-shell{grid-column:1;min-height:0}.details{top:105px;width:96vw;max-height:calc(100vh - 115px);border-radius:12px 0 0 12px}.coverage{grid-template-columns:repeat(2,1fr)}.node{width:190px}.node.group{width:210px}.modal{padding:13px}.form-grid{grid-template-columns:1fr}.form-grid .full{grid-column:auto}}
+@media(min-width:701px) and (max-width:1000px){.details{top:56px}.layout{grid-template-columns:1fr}aside{display:none}}
+</style>
+</head>
+<body>
+<div class="app">
+<header>
+  <div class="brand">
+    <h1>NAEL Almnhal — Business Operating Map</h1>
+    <small>V1 source-of-truth model · 30 Sep 2026</small>
+  </div>
+  <div class="toolbar">
+    <button class="btn" id="homeBtn">⌂ Home</button>
+    <button class="btn" id="backBtn">← Back</button>
+    <select class="select" id="mode">
+      <option value="current">CURRENT</option>
+      <option value="gaps">GAPS</option>
+      <option value="tobe">TO-BE</option>
+    </select>
+    <select class="select" id="typeFilter">
+      <option value="all">All node types</option>
+      <option value="entity">Entities</option><option value="process">Processes</option>
+      <option value="transaction">Transactions</option><option value="person">People</option>
+      <option value="finance">Finance</option><option value="system">Systems</option>
+      <option value="gap">Gaps</option><option value="tobe">TO-BE</option>
+    </select>
+    <input class="search" id="search" placeholder="Search nodes, gaps, sections…">
+    <button class="btn" id="zoomOut">−</button><button class="btn" id="zoomReset">100%</button><button class="btn" id="zoomIn">+</button>
+    <button class="btn" id="fitBtn">Fit</button><button class="btn" id="detailsBtn">Details</button><button class="btn" id="dataBtn">Data</button><input type="file" id="importData" accept="application/json" hidden>
+  </div>
+</header>
+<div class="layout">
+<aside id="sidebar"></aside>
+<main class="map-shell">
+  <div id="viewport">
+    <div id="world">
+      <svg id="edges" viewBox="0 0 2400 1450" aria-hidden="true">
+        <defs>
+          <marker id="arrow-material" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6 z" fill="var(--material)"/></marker>
+          <marker id="arrow-money" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6 z" fill="var(--money)"/></marker>
+          <marker id="arrow-information" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6 z" fill="var(--information)"/></marker>
+          <marker id="arrow-authority" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6 z" fill="var(--authority)"/></marker>
+          <marker id="arrow-system" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6 z" fill="var(--system)"/></marker>
+          <marker id="arrow-inventory" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6 z" fill="var(--inventory)"/></marker>
+          <marker id="arrow-gap" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6 z" fill="var(--gap)"/></marker>
+        </defs>
+      </svg>
+    </div>
+  </div>
+</main>
+<section class="details" id="details"><div class="empty">Select a node to inspect its V1-supported details.</div></section>
+</div>
+</div>
+<div class="modal-backdrop" id="editorModal" aria-hidden="true"><div class="modal" role="dialog" aria-modal="true">
+  <h2 id="editorTitle">Edit</h2><small id="editorSubtitle"></small>
+  <div class="form-grid">
+    <div><label>Status</label><select id="editStatus"><option value="open">Open / MISSING</option><option value="verified">Verified / Filled</option><option value="not_applicable">Not applicable</option></select></div>
+    <div><label>Verified by / owner</label><input id="editOwner" placeholder="Who supplied or verified this information?"></div>
+    <div class="full"><label>Actual information / answer</label><textarea id="editInfo" placeholder="Enter the information that V1 did not contain. This is stored separately as a user overlay."></textarea></div>
+    <div class="full"><label>Evidence / reference</label><input id="editEvidence" placeholder="Document, screenshot, interview, file, transaction, etc."></div>
+    <div class="full"><label>Notes</label><textarea id="editNotes" placeholder="Additional notes or follow-up required."></textarea></div>
+  </div>
+  <div class="modal-actions"><button class="btn" id="cancelEdit">Cancel</button><button class="btn" id="clearEdit">Clear overlay</button><button class="btn active" id="saveEdit">Save</button></div>
+</div></div>
+<script>
+const DATA = {"title": "NAEL Almnhal — Business Operating Map V1", "version": "V1 — Working Baseline | 30 September 2026", "source": "Nael Almnhal — Business & Operations Book | V1", "sections": [{"id": "s1", "n": 1, "title": "Executive Summary", "page": 2, "mode": ["current", "gaps", "tobe"]}, {"id": "s2", "n": 2, "title": "Group Business Map", "page": 3, "mode": ["current", "gaps"]}, {"id": "s3", "n": 3, "title": "Almanhal Pharmaceutical Depot — Basra", "page": 4, "mode": ["current", "gaps", "tobe"]}, {"id": "s4", "n": 4, "title": "Scientific Office — Baghdad", "page": 6, "mode": ["current", "gaps", "tobe"]}, {"id": "s5", "n": 5, "title": "Four Pharmacies", "page": 7, "mode": ["current", "gaps", "tobe"]}, {"id": "s6", "n": 6, "title": "Finance, Cash & Treasury", "page": 8, "mode": ["current", "gaps", "tobe"]}, {"id": "s7", "n": 7, "title": "Gym", "page": 9, "mode": ["current", "gaps", "tobe"]}, {"id": "s8", "n": 8, "title": "Boulevard Restaurant", "page": 9, "mode": ["current", "gaps"]}, {"id": "s9", "n": 9, "title": "Turkey Pharmaceutical Arrangement", "page": 9, "mode": ["current", "gaps"]}, {"id": "s10", "n": 10, "title": "Organization & Governance — Current State", "page": 10, "mode": ["current", "gaps", "tobe"]}, {"id": "s11", "n": 11, "title": "Current End-to-End Flows", "page": 11, "mode": ["current", "gaps", "tobe"]}, {"id": "s12", "n": 12, "title": "Current-State Control & Management Gaps", "page": 12, "mode": ["gaps", "current", "tobe"]}, {"id": "s13", "n": 13, "title": "Brief Target Operating Model (TO-BE)", "page": 13, "mode": ["tobe"]}, {"id": "s14", "n": 14, "title": "Recommended Group Structure — Concept", "page": 14, "mode": ["tobe", "gaps"]}, {"id": "s15", "n": 15, "title": "Information Still Required — Master Gap Register", "page": 14, "mode": ["gaps"]}, {"id": "s16", "n": 16, "title": "Next Phase — Discovery Plan", "page": 15, "mode": ["tobe", "gaps"]}], "nodes": [{"id": "group", "parent": null, "label": "NAEL GROUP", "type": "group", "mode": "current", "section": "s1", "page": 2, "summary": "Diversified business group centered on a pharmaceutical distribution business in Basra.", "detail": "Known portfolio: pharmaceutical depot, Baghdad scientific office, four pharmacies, operating gym, Boulevard restaurant under construction, and ongoing Turkey pharmaceutical arrangement. V1 describes the operating model as highly owner-dependent.", "owner": "Nael", "system": "Mixed / not standardized", "impact": "Group-level governance and information flow", "control": "Owner remains main approval point for major purchasing, payments, banking/cash, hiring and many operating decisions."}, {"id": "owner", "parent": "group", "label": "Owner / Nael", "type": "person", "mode": "current", "section": "s10", "page": 10, "summary": "Owner; major approvals, payments, banking/cash, hiring and operating decisions.", "detail": "Dependency on owner is described as very high. Nael is the effective owner-level finance authority and receives information through current owner-centered flows.", "owner": "Nael", "system": "Banking / cash / local processes", "impact": "Authority / money", "control": "Major approvals and financial authority concentrated at owner level."}, {"id": "hq-current", "parent": "group", "label": "HQ / Group HQ", "type": "governance", "mode": "current", "section": "s2", "page": 3, "summary": "No formal HQ is currently indicated by V1.", "detail": "V1 says there is MISSING / TO VERIFY whether any existing group/HQ company exists; current information indicates there is no formal HQ.", "owner": "MISSING / TO VERIFY", "system": "MISSING / TO VERIFY", "impact": "Governance / legal structure", "control": "Gap: exact group structure and operational reporting relationships require investigation."}, {"id": "finance", "parent": "group", "label": "Finance", "type": "finance", "mode": "current", "section": "s6", "page": 8, "summary": "Centralized at the depot; handles depot and four pharmacies' money.", "detail": "Approximately four finance employees are believed to exist. No dedicated finance manager has been identified. Finance reports to Nael approximately monthly.", "owner": "Finance team / Nael", "system": "Accounting system MISSING / TO VERIFY", "impact": "Money / reporting", "control": "Payment, banking, reconciliation and segregation controls are not fully documented."}, {"id": "ahmad", "parent": "group", "label": "Ahmad / Coordination", "type": "person", "mode": "current", "section": "s10", "page": 10, "summary": "Collects information, coordinates work and supports owner.", "detail": "Dependency on owner is very high. Formal authority and job description for Ahmad remain MISSING / TO VERIFY.", "owner": "Ahmad", "system": "Information collection / local methods", "impact": "Information", "control": "Current information architecture is centered around the owner."}, {"id": "kabsula", "parent": "group", "label": "Kabsula / POS / Excel", "type": "system", "mode": "current", "section": "s12", "page": 12, "summary": "Technology/data layer currently includes Kabsula, POS and Excel/local processes.", "detail": "Kabsula is used by pharmacies to order from suppliers/depot options. A POS system is believed to be in use in pharmacies. Warehouse inventory is believed to be managed largely through Excel/local processes. Exact capabilities and integrations are MISSING / TO VERIFY.", "owner": "MISSING / TO VERIFY", "system": "Kabsula / POS / Excel", "impact": "Information / inventory / sales / cash", "control": "Capabilities, integrations and data ownership are not documented."}, {"id": "gaps-home", "parent": "group", "label": "GAPS — Master Gap Register", "type": "gap", "mode": "gaps", "section": "s15", "page": 14, "summary": "All explicit MISSING / TO VERIFY items retained as visible gaps.", "detail": "See the dedicated GAPS mode and Gap Register. V1 states red items are deliberately retained so the next discovery phase has a visible checklist rather than hidden assumptions."}, {"id": "depot", "parent": "group", "label": "Pharmaceutical Depot — Basra", "type": "entity", "mode": "current", "section": "s2", "page": 3, "summary": "Largest known business unit; medicine purchasing, warehousing, distribution and external sales.", "detail": "Operating. Known management: Depot Manager; SC; Finance. Depot serves external pharmacies/customers and is not limited to Nael's pharmacies."}, {"id": "scientific", "parent": "group", "label": "Scientific Office — Baghdad", "type": "entity", "mode": "current", "section": "s2", "page": 3, "summary": "Separate entity; manager plus approximately two employees; sources and distributes medicines.", "detail": "Operating. Sources medicines from manufacturers inside/outside Iraq and distributes to depots and other customers."}, {"id": "pharmacies", "parent": "group", "label": "4 Pharmacies", "type": "entity", "mode": "current", "section": "s2", "page": 3, "summary": "Four separate entities; independent inventory/purchasing and retail operations.", "detail": "Each controls its own inventory and purchases. Pharmacist is the principal operating decision-maker identified. Pharmacies use Kabsula and may purchase from other suppliers."}, {"id": "gym", "parent": "group", "label": "Gym", "type": "entity", "mode": "current", "section": "s2", "page": 3, "summary": "Operating fitness/membership service.", "detail": "Current information indicates a manager and coach, plus reception/cash handling. Nael remains involved in decisions."}, {"id": "restaurant", "parent": "group", "label": "Boulevard Restaurant", "type": "entity", "mode": "current", "section": "s2", "page": 3, "summary": "Under construction; intended to operate as a separate business.", "detail": "Building is not owned by Nael according to the information provided. Manager is not appointed/known."}, {"id": "turkey", "parent": "group", "label": "Turkey Pharmaceutical Arrangement", "type": "entity", "mode": "current", "section": "s2", "page": 3, "summary": "Ongoing; signed believed; exclusive medicine/trademark distribution/import rights.", "detail": "Agreement is believed signed. V1 requires verification against the actual contract and regulatory documents. It may be a separate business line/entity."}, {"id": "depot-demand", "parent": "depot", "label": "Demand / Inventory Observation", "type": "process", "mode": "current", "section": "s3", "page": 4, "summary": "SC identifies requirements based on inventory and demand.", "detail": "Current purchasing strategy is believed to rely heavily on employee judgment."}, {"id": "depot-purchasing", "parent": "depot", "label": "Purchasing", "type": "process", "mode": "current", "section": "s3", "page": 4, "summary": "Depot Manager is believed to control purchase decision; Nael approves payment.", "detail": "No documented supplier evaluation, procurement strategy, purchasing budget or approval limit currently identified."}, {"id": "supplier", "parent": "depot", "label": "Supplier / Scientific Office", "type": "external", "mode": "current", "section": "s3", "page": 4, "summary": "Source of medicines within applicable regulatory framework.", "detail": "Supplier comparison/quotation process and negotiated pricing are MISSING / TO VERIFY."}, {"id": "depot-receive", "parent": "depot", "label": "Receiving / Check", "type": "process", "mode": "current", "section": "s3", "page": 4, "summary": "SC receives and checks incoming medicines.", "detail": "Formal controls for batch, expiry, damaged, returned and written-off medicine are not documented."}, {"id": "warehouse", "parent": "depot", "label": "Warehouse / Inventory", "type": "process", "mode": "current", "section": "s3", "page": 4, "summary": "Inventory believed managed largely through Excel/local processes.", "detail": "No routine physical inventory count identified. Warehouse staff can adjust inventory records. FEFO, batch/lot, expiry, damaged/returned/write-off workflows are MISSING / TO VERIFY."}, {"id": "depot-order", "parent": "depot", "label": "Customer / Pharmacy Order", "type": "transaction", "mode": "current", "section": "s3", "page": 5, "summary": "Depot receives orders from customers/pharmacies; Kabsula connects pharmacies with depots.", "detail": "Exact Kabsula order → approval → picking → checking → dispatch → invoice/collection workflow is MISSING / TO VERIFY."}, {"id": "picking", "parent": "depot", "label": "Picking / Dispatch", "type": "process", "mode": "current", "section": "s3", "page": 5, "summary": "Depot flow includes picking/dispatch after customer/pharmacy order.", "detail": "Exact process documents, approvals, system records and responsible person at every step are MISSING / TO VERIFY."}, {"id": "depot-sales", "parent": "depot", "label": "Sales / Receivable / Cash", "type": "transaction", "mode": "current", "section": "s11", "page": 11, "summary": "Depot flow ends in sales/receivable/cash and finance reporting.", "detail": "External customer credit terms, receivables and collection controls are MISSING / TO VERIFY."}, {"id": "pharm-demand", "parent": "pharmacies", "label": "Customer Demand", "type": "process", "mode": "current", "section": "s11", "page": 11, "summary": "Customer demand triggers pharmacy requirement identification.", "detail": "Pharmacist identifies requirement."}, {"id": "pharm-order", "parent": "pharmacies", "label": "Kabsula / Supplier Order", "type": "transaction", "mode": "current", "section": "s5", "page": 7, "summary": "Pharmacist places orders; pharmacies can use Kabsula and other suppliers.", "detail": "Purchasing policy and supplier list are MISSING / TO VERIFY."}, {"id": "pharm-receive", "parent": "pharmacies", "label": "Receipt → Pharmacy Inventory", "type": "process", "mode": "current", "section": "s11", "page": 11, "summary": "Ordered medicine is received into pharmacy inventory.", "detail": "Inventory count frequency and stock-adjustment approval are MISSING / TO VERIFY."}, {"id": "pharm-sale", "parent": "pharmacies", "label": "Sale / POS", "type": "transaction", "mode": "current", "section": "s5", "page": 7, "summary": "POS system is believed to be in use.", "detail": "POS system name, capabilities and integration with Kabsula/accounting are MISSING / TO VERIFY."}, {"id": "cash-close", "parent": "pharmacies", "label": "Weekly Cash Closing", "type": "process", "mode": "current", "section": "s5", "page": 7, "summary": "Cash closing is reportedly performed weekly.", "detail": "Daily cash handling, weekly closing and reconciliation process are MISSING / TO VERIFY."}, {"id": "pharm-fin", "parent": "pharmacies", "label": "Finance Reporting", "type": "process", "mode": "current", "section": "s11", "page": 11, "summary": "Pharmacy finance support handles numbers/reporting.", "detail": "Pharmacy-level P&L and KPIs are MISSING / TO VERIFY."}, {"id": "pharm-adjust", "parent": "pharmacies", "label": "Inventory Adjustment", "type": "transaction", "mode": "current", "section": "s5", "page": 7, "summary": "Pharmacy staff can make inventory adjustments.", "detail": "Inventory count frequency and stock-adjustment approval are MISSING / TO VERIFY."}, {"id": "cash-flow", "parent": "finance", "label": "Sales/Cash → Collection/Deposit → Bank", "type": "process", "mode": "current", "section": "s11", "page": 11, "summary": "Money flow begins with sales/cash and moves through collection/deposit to bank.", "detail": "Exact cash/bank ownership, reconciliation, payment workflow and segregation of duties are MISSING / TO VERIFY."}, {"id": "supplier-pay", "parent": "finance", "label": "Supplier Payments / Expenses", "type": "transaction", "mode": "current", "section": "s6", "page": 8, "summary": "Nael approves supplier payments.", "detail": "Payment approval limits and segregation between initiation, approval, payment and reconciliation are MISSING / TO VERIFY."}, {"id": "finance-report", "parent": "finance", "label": "Finance Reporting → Nael", "type": "process", "mode": "current", "section": "s6", "page": 8, "summary": "Finance reports to Nael approximately monthly.", "detail": "No formal management P&L, cash-flow, receivables/payables or business-unit profitability package identified."}, {"id": "depot-manager", "parent": "depot", "label": "Depot Manager", "type": "person", "mode": "current", "section": "s10", "page": 10, "summary": "Warehouse and purchasing decisions.", "detail": "High dependency on owner."}, {"id": "sc-team", "parent": "depot", "label": "SC Team (~4)", "type": "person", "mode": "current", "section": "s3", "page": 4, "summary": "Two employees mainly warehouse keepers; two supply-chain staff; receiving/checking and warehouse operations.", "detail": "Exact organization and authority beyond current understanding remain to be verified."}, {"id": "depot-finance", "parent": "depot", "label": "Depot Finance (~4)", "type": "finance", "mode": "current", "section": "s3", "page": 4, "summary": "Finance located inside depot; handles depot plus four pharmacies' money.", "detail": "No dedicated finance manager identified."}, {"id": "pharmacists", "parent": "pharmacies", "label": "Pharmacists", "type": "person", "mode": "current", "section": "s10", "page": 10, "summary": "Sales, purchasing and inventory decisions.", "detail": "Medium/high owner dependency."}, {"id": "gym-manager", "parent": "gym", "label": "Gym Manager", "type": "person", "mode": "current", "section": "s10", "page": 10, "summary": "Gym operation.", "detail": "High owner dependency."}, {"id": "baghdad-manager", "parent": "scientific", "label": "Baghdad Office Manager", "type": "person", "mode": "current", "section": "s10", "page": 10, "summary": "Office operations, suppliers, distribution and regulatory work.", "detail": "High owner dependency."}, {"id": "tobe-governance", "parent": "group", "label": "TO-BE: Owner / Group Governance", "type": "tobe", "mode": "tobe", "section": "s13", "page": 13, "summary": "Owner governs strategy, capital, major risk and exceptional approvals.", "detail": "Nael receives a standardized monthly group dashboard and approval thresholds are defined for monetary/risk decisions."}, {"id": "tobe-managers", "parent": "group", "label": "TO-BE: Business Managers", "type": "tobe", "mode": "tobe", "section": "s13", "page": 13, "summary": "Each operating entity has one accountable manager.", "detail": "Managers own day-to-day operations, people, service level and approved budget; KPIs include sales, gross margin, cash, inventory, expenses and exceptions."}, {"id": "tobe-finance", "parent": "group", "label": "TO-BE: Central Finance & Treasury", "type": "tobe", "mode": "tobe", "section": "s13", "page": 13, "summary": "Central finance can remain shared if legally and operationally appropriate.", "detail": "Separate transaction preparation, approval, payment and reconciliation. Produce entity-level P&L, cash position, receivables/payables and inventory/working-capital reporting."}, {"id": "tobe-depot", "parent": "depot", "label": "TO-BE: Standardized Depot", "type": "tobe", "mode": "tobe", "section": "s13", "page": 13, "summary": "Standardize procurement, supplier selection, receiving, storage, FEFO/batch/expiry, picking and dispatch.", "detail": "Introduce cycle counts, controlled stock adjustments, procurement authority and reorder methodology."}, {"id": "tobe-pharm", "parent": "pharmacies", "label": "TO-BE: Pharmacy Controls", "type": "tobe", "mode": "tobe", "section": "s13", "page": 13, "summary": "Pharmacists operate within purchasing, pricing and inventory policies.", "detail": "Standardize POS/cash close/inventory reconciliation. Measure each pharmacy as a separate profit center."}, {"id": "tobe-scientific", "parent": "scientific", "label": "TO-BE: Scientific Office Controls", "type": "tobe", "mode": "tobe", "section": "s13", "page": 13, "summary": "Separate manufacturer/import/distribution responsibilities and establish clear commercial and regulatory controls.", "detail": "Target model only; exact design follows discovery."}, {"id": "tobe-newbiz", "parent": "group", "label": "TO-BE: New Business Models", "type": "tobe", "mode": "tobe", "section": "s13", "page": 13, "summary": "Gym and restaurant have independent operating budgets, managers, cash controls and monthly P&L.", "detail": "Turkey arrangement gets its own business case, legal entity/rights map, working-capital plan and performance dashboard."}, {"id": "tobe-structure", "parent": "group", "label": "TO-BE: Group Structure Concept", "type": "tobe", "mode": "tobe", "section": "s14", "page": 14, "summary": "Owner → Group/Shared Services → Business Managers → Operational Teams → Systems & Controls.", "detail": "Exact structure to be selected after current-state discovery; objective is clear decision ownership and reliable information."}, {"id": "assessment", "parent": "group", "label": "Assessment Framework", "type": "process", "mode": "current", "section": "s1", "page": 2, "summary": "Evaluate ownership/legal, business units, strategy, organization, processes, finance, inventory, customers/suppliers, technology/data, controls/risks/compliance, KPIs/reporting.", "detail": "For every area ask: What exists? How does it work? Who is responsible? What evidence exists? How is it measured? What is wrong/missing? What should change."}, {"id": "phase-plan", "parent": "group", "label": "Discovery → Operating Model → ERP → BI/AI", "type": "process", "mode": "tobe", "section": "s16", "page": 15, "summary": "V1 sequence: verify legal/organization → depot deep dive → pharmacy sample → finance trace → systems inspection → financial baseline → authority matrix → TO-BE design.", "detail": "ERP requirements follow the organization/process/control/KPI design; BI/automation/AI follows later."}], "connections": [["owner", "group", "authority"], ["group", "depot", "authority"], ["group", "scientific", "authority"], ["group", "pharmacies", "authority"], ["group", "gym", "authority"], ["group", "restaurant", "authority"], ["group", "turkey", "authority"], ["group", "finance", "money"], ["group", "ahmad", "information"], ["group", "kabsula", "system"], ["group", "gaps-home", "gap"], ["depot-demand", "depot-purchasing", "material"], ["depot-purchasing", "supplier", "material"], ["supplier", "depot-receive", "material"], ["depot-receive", "warehouse", "material"], ["warehouse", "depot-order", "material"], ["depot-order", "picking", "material"], ["picking", "depot-sales", "material"], ["depot-sales", "finance", "money"], ["finance", "owner", "information"], ["depot", "depot-manager", "authority"], ["depot", "sc-team", "authority"], ["depot", "depot-finance", "money"], ["pharm-demand", "pharm-order", "material"], ["pharm-order", "pharm-receive", "material"], ["pharm-receive", "pharm-sale", "material"], ["pharm-sale", "cash-close", "money"], ["cash-close", "pharm-fin", "information"], ["pharm-fin", "finance", "information"], ["pharm-order", "kabsula", "system"], ["pharm-sale", "kabsula", "system"], ["pharm-adjust", "pharm-fin", "inventory"], ["pharmacies", "pharmacists", "authority"], ["pharmacies", "pharm-demand", "material"], ["pharm-sale", "pharm-adjust", "inventory"], ["depot-sales", "cash-flow", "money"], ["cash-flow", "supplier-pay", "money"], ["supplier-pay", "finance-report", "money"], ["finance-report", "owner", "information"], ["depot", "ahmad", "information"], ["scientific", "ahmad", "information"], ["pharmacies", "ahmad", "information"], ["gym", "ahmad", "information"], ["ahmad", "owner", "information"], ["tobe-governance", "tobe-managers", "authority"], ["tobe-managers", "tobe-finance", "information"], ["tobe-managers", "tobe-depot", "authority"], ["tobe-managers", "tobe-pharm", "authority"], ["tobe-managers", "tobe-scientific", "authority"], ["tobe-finance", "tobe-managers", "money"], ["tobe-newbiz", "tobe-finance", "money"], ["tobe-structure", "tobe-governance", "authority"], ["assessment", "phase-plan", "information"]], "gaps": [{"id": "g01", "section": "s2", "page": 3, "entity": "Group", "unknown": "Legal names, registration/licensing details and exact locations for all entities.", "required": "Verify legal/entity register and locations.", "source": "V1 §2, p.3"}, {"id": "g02", "section": "s2", "page": 3, "entity": "Group", "unknown": "Ownership percentages and partners for each entity, especially restaurant and pharmaceutical entities.", "required": "Ownership/partner records and contracts.", "source": "V1 §2, p.3"}, {"id": "g03", "section": "s2", "page": 3, "entity": "Group", "unknown": "Whether any existing group/HQ company exists; current information indicates no formal HQ.", "required": "Legal structure and governance verification.", "source": "V1 §2, p.3"}, {"id": "g04", "section": "s2", "page": 3, "entity": "Group", "unknown": "Intercompany relationships, shared staff, shared bank accounts, shared assets and intercompany transactions.", "required": "Intercompany mapping and supporting records.", "source": "V1 §2, p.3"}, {"id": "g05", "section": "s3", "page": 4, "entity": "Depot", "unknown": "Number of SKUs/products.", "required": "SKU/product master extraction.", "source": "V1 §3, p.4"}, {"id": "g06", "section": "s3", "page": 4, "entity": "Depot", "unknown": "Number of suppliers/scientific offices, monthly purchasing value and purchase frequency.", "required": "Supplier master and purchasing data.", "source": "V1 §3, p.4"}, {"id": "g07", "section": "s3", "page": 4, "entity": "Depot", "unknown": "Who creates the purchase order versus who approves it.", "required": "Actual purchasing transaction trace and authority mapping.", "source": "V1 §3, p.4"}, {"id": "g08", "section": "s3", "page": 4, "entity": "Depot", "unknown": "Supplier comparison/quotation process and negotiated pricing.", "required": "Sample purchasing files and supplier comparison evidence.", "source": "V1 §3, p.4"}, {"id": "g09", "section": "s3", "page": 4, "entity": "Warehouse", "unknown": "Warehouse layout, storage standards, temperature/cold-chain controls and regulatory requirements.", "required": "Physical warehouse walk-through and regulatory documentation.", "source": "V1 §3, p.4"}, {"id": "g10", "section": "s3", "page": 4, "entity": "Warehouse", "unknown": "FIFO/FEFO practice.", "required": "Observe actual picking/storage practice.", "source": "V1 §3, p.4"}, {"id": "g11", "section": "s3", "page": 4, "entity": "Warehouse", "unknown": "Batch/lot tracking and expiry-date tracking.", "required": "Inspect records/system and sample medicines.", "source": "V1 §3, p.4"}, {"id": "g12", "section": "s3", "page": 4, "entity": "Warehouse", "unknown": "Inventory count frequency and stock variance approval.", "required": "Inventory count records and approval evidence.", "source": "V1 §3, p.4"}, {"id": "g13", "section": "s3", "page": 4, "entity": "Warehouse", "unknown": "Expired/damaged/returned medicine workflow.", "required": "Trace sample exceptions and records.", "source": "V1 §3, p.4"}, {"id": "g14", "section": "s3", "page": 5, "entity": "Kabsula", "unknown": "Exact Kabsula features and whether it records inventory, pricing, invoicing, payments, batches and expiry.", "required": "Inspect Kabsula configuration and records.", "source": "V1 §3, p.5"}, {"id": "g15", "section": "s3", "page": 5, "entity": "Depot Sales", "unknown": "Kabsula order → approval → picking → checking → dispatch → invoice/collection workflow.", "required": "Trace a real order end-to-end.", "source": "V1 §3, p.5"}, {"id": "g16", "section": "s3", "page": 5, "entity": "External Customers", "unknown": "External customer credit terms, receivables and collection controls.", "required": "Customer master, credit terms and collection records.", "source": "V1 §3, p.5"}, {"id": "g17", "section": "s4", "page": 6, "entity": "Scientific Office", "unknown": "Legal name, license and registration.", "required": "Legal/regulatory documents.", "source": "V1 §4, p.6"}, {"id": "g18", "section": "s4", "page": 6, "entity": "Scientific Office", "unknown": "Exact employee count and job roles.", "required": "Employee roster and job descriptions.", "source": "V1 §4, p.6"}, {"id": "g19", "section": "s4", "page": 6, "entity": "Scientific Office", "unknown": "Manufacturers/suppliers, countries and product portfolio.", "required": "Supplier/manufacturer and product records.", "source": "V1 §4, p.6"}, {"id": "g20", "section": "s4", "page": 6, "entity": "Scientific Office", "unknown": "Import/customs/regulatory process and responsible people.", "required": "Trace actual import/regulatory transaction.", "source": "V1 §4, p.6"}, {"id": "g21", "section": "s4", "page": 6, "entity": "Scientific Office", "unknown": "Inventory ownership, warehouse/storage arrangements and inventory system.", "required": "Ownership and inventory-system evidence.", "source": "V1 §4, p.6"}, {"id": "g22", "section": "s4", "page": 6, "entity": "Scientific Office", "unknown": "Pricing, margins, credit policy and customer management.", "required": "Commercial policy/data and customer records.", "source": "V1 §4, p.6"}, {"id": "g23", "section": "s4", "page": 6, "entity": "Scientific Office", "unknown": "Finance/accounting, bank accounts and profitability reporting.", "required": "Accounting/bank/reporting records.", "source": "V1 §4, p.6"}, {"id": "g24", "section": "s5", "page": 7, "entity": "Pharmacies", "unknown": "Names, legal entity details, locations and ownership of each pharmacy.", "required": "Legal/entity register.", "source": "V1 §5, p.7"}, {"id": "g25", "section": "s5", "page": 7, "entity": "Pharmacies", "unknown": "Organization chart and roles per pharmacy.", "required": "Employee roster and reporting lines.", "source": "V1 §5, p.7"}, {"id": "g26", "section": "s5", "page": 7, "entity": "Pharmacies", "unknown": "POS system name, capabilities and integration with Kabsula/accounting.", "required": "Inspect POS and integrations.", "source": "V1 §5, p.7"}, {"id": "g27", "section": "s5", "page": 7, "entity": "Pharmacies", "unknown": "Sales, gross margin, inventory value, purchase volume and profitability by pharmacy.", "required": "Entity-level operating and financial data.", "source": "V1 §5, p.7"}, {"id": "g28", "section": "s5", "page": 7, "entity": "Pharmacies", "unknown": "Supplier list and purchasing policy.", "required": "Supplier master and purchasing policy.", "source": "V1 §5, p.7"}, {"id": "g29", "section": "s5", "page": 7, "entity": "Pharmacies", "unknown": "Daily cash handling, weekly closing and reconciliation process.", "required": "Trace cash from sale to bank/report.", "source": "V1 §5, p.7"}, {"id": "g30", "section": "s5", "page": 7, "entity": "Pharmacies", "unknown": "Inventory count frequency and stock-adjustment approval.", "required": "Count records and adjustment approvals.", "source": "V1 §5, p.7"}, {"id": "g31", "section": "s5", "page": 7, "entity": "Pharmacies", "unknown": "Pharmacy-level P&L and KPIs.", "required": "Current management reports and accounting data.", "source": "V1 §5, p.7"}, {"id": "g32", "section": "s6", "page": 8, "entity": "Finance", "unknown": "Accounting software and chart of accounts.", "required": "Inspect accounting environment and COA.", "source": "V1 §6, p.8"}, {"id": "g33", "section": "s6", "page": 8, "entity": "Finance", "unknown": "Bank accounts by legal entity and authorized signatories.", "required": "Bank/account/legal entity verification.", "source": "V1 §6, p.8"}, {"id": "g34", "section": "s6", "page": 8, "entity": "Finance", "unknown": "Segregation between transaction initiation, approval, payment and reconciliation.", "required": "Trace payment workflow and authorities.", "source": "V1 §6, p.8"}, {"id": "g35", "section": "s6", "page": 8, "entity": "Finance", "unknown": "Payment approval limits.", "required": "Current approval rules/evidence.", "source": "V1 §6, p.8"}, {"id": "g36", "section": "s6", "page": 8, "entity": "Finance", "unknown": "Bank reconciliation process.", "required": "Sample bank reconciliation.", "source": "V1 §6, p.8"}, {"id": "g37", "section": "s6", "page": 8, "entity": "Finance", "unknown": "Supplier payable and customer receivable processes.", "required": "AP/AR transaction traces.", "source": "V1 §6, p.8"}, {"id": "g38", "section": "s6", "page": 8, "entity": "Finance", "unknown": "Monthly close process and financial reporting pack.", "required": "Month-end close and report samples.", "source": "V1 §6, p.8"}, {"id": "g39", "section": "s6", "page": 8, "entity": "Finance", "unknown": "Tax/statutory accounting and external audit arrangements.", "required": "Tax/statutory and audit documentation.", "source": "V1 §6, p.8"}, {"id": "g40", "section": "s7", "page": 9, "entity": "Gym", "unknown": "Exact legal entity, location, ownership/partners and staff count.", "required": "Legal and employee records.", "source": "V1 §7, p.9"}, {"id": "g41", "section": "s7", "page": 9, "entity": "Gym", "unknown": "Membership model, prices, packages, customer database and cancellation/refund rules.", "required": "Commercial model and customer records.", "source": "V1 §7, p.9"}, {"id": "g42", "section": "s7", "page": 9, "entity": "Gym", "unknown": "POS/membership software, cash reconciliation and bank deposits.", "required": "System and cash/bank evidence.", "source": "V1 §7, p.9"}, {"id": "g43", "section": "s7", "page": 9, "entity": "Gym", "unknown": "Expenses, payroll, monthly revenue and profitability.", "required": "Financial records.", "source": "V1 §7, p.9"}, {"id": "g44", "section": "s8", "page": 9, "entity": "Boulevard Restaurant", "unknown": "Exact legal owner/partners, lease arrangement and investment structure.", "required": "Legal/lease/investment documents.", "source": "V1 §8, p.9"}, {"id": "g45", "section": "s8", "page": 9, "entity": "Boulevard Restaurant", "unknown": "Concept, capacity, target opening date, menu and pricing model.", "required": "Approved concept and opening plan.", "source": "V1 §8, p.9"}, {"id": "g46", "section": "s8", "page": 9, "entity": "Boulevard Restaurant", "unknown": "Restaurant manager/operator and staffing plan.", "required": "Organization/staffing plan.", "source": "V1 §8, p.9"}, {"id": "g47", "section": "s8", "page": 9, "entity": "Boulevard Restaurant", "unknown": "Procurement, inventory, POS, cash controls and supplier structure.", "required": "Operating model and control design.", "source": "V1 §8, p.9"}, {"id": "g48", "section": "s8", "page": 9, "entity": "Boulevard Restaurant", "unknown": "Budget, funding source, expected revenue/cost model and P&L.", "required": "Business case/budget.", "source": "V1 §8, p.9"}, {"id": "g49", "section": "s9", "page": 9, "entity": "Turkey Arrangement", "unknown": "Turkish manufacturer name and contract copy.", "required": "Contract and counterparty documentation.", "source": "V1 §9, p.9"}, {"id": "g50", "section": "s9", "page": 9, "entity": "Turkey Arrangement", "unknown": "Trademark/product names.", "required": "Contract/product documents.", "source": "V1 §9, p.9"}, {"id": "g51", "section": "s9", "page": 9, "entity": "Turkey Arrangement", "unknown": "Territory, duration, exclusivity conditions and minimum commitments.", "required": "Contract review.", "source": "V1 §9, p.9"}, {"id": "g52", "section": "s9", "page": 9, "entity": "Turkey Arrangement", "unknown": "Iraqi registration/import rights.", "required": "Regulatory/import documentation.", "source": "V1 §9, p.9"}, {"id": "g53", "section": "s9", "page": 9, "entity": "Turkey Arrangement", "unknown": "Pricing, margins, payment terms, forecast volumes and working-capital requirement.", "required": "Business case and commercial terms.", "source": "V1 §9, p.9"}, {"id": "g54", "section": "s9", "page": 9, "entity": "Turkey Arrangement", "unknown": "Legal entity that owns the distribution rights.", "required": "Legal/contract verification.", "source": "V1 §9, p.9"}, {"id": "g55", "section": "s10", "page": 10, "entity": "Organization", "unknown": "Complete organization chart and employee roster; current estimate is 40+ employees.", "required": "Full employee roster and reporting structure.", "source": "V1 §10, p.10"}, {"id": "g56", "section": "s10", "page": 10, "entity": "Organization", "unknown": "Formal job descriptions and KPIs.", "required": "Role documents and KPI definitions.", "source": "V1 §10, p.10"}, {"id": "g57", "section": "s10", "page": 10, "entity": "Governance", "unknown": "Delegation-of-authority matrix.", "required": "Decision-rights matrix.", "source": "V1 §10, p.10"}, {"id": "g58", "section": "s10", "page": 10, "entity": "Ahmad", "unknown": "Formal authority and job description for Ahmad.", "required": "Role/authority documentation.", "source": "V1 §10, p.10"}, {"id": "g59", "section": "s10", "page": 10, "entity": "Management", "unknown": "Management meeting/reporting cadence.", "required": "Current cadence and management reporting evidence.", "source": "V1 §10, p.10"}, {"id": "g60", "section": "s11", "page": 11, "entity": "All Flows", "unknown": "Exact documents, approvals, system records and responsible person at every step.", "required": "Transaction walkthroughs and document/system evidence.", "source": "V1 §11, p.11"}, {"id": "g61", "section": "s11", "page": 11, "entity": "Pharmacies", "unknown": "Exact POS/Kabsula integration and reconciliation between sales, stock and cash.", "required": "Trace one pharmacy transaction end-to-end.", "source": "V1 §11, p.11"}, {"id": "g62", "section": "s11", "page": 11, "entity": "Money Flow", "unknown": "Exact cash/bank ownership, reconciliation, payment workflow and segregation of duties.", "required": "Trace cash/bank/payment transaction.", "source": "V1 §11, p.11"}, {"id": "g63", "section": "s15", "page": 14, "entity": "Legal", "unknown": "Company names, licenses, ownership, partners, bank accounts, contracts.", "required": "Complete legal data collection.", "source": "V1 §15, p.14"}, {"id": "g64", "section": "s15", "page": 14, "entity": "People", "unknown": "Complete employee list, roles, salaries, reporting lines, job descriptions.", "required": "HR/people data collection.", "source": "V1 §15, p.14"}, {"id": "g65", "section": "s15", "page": 14, "entity": "Commercial", "unknown": "Customers, suppliers, SKUs/products, prices, margins, sales volumes, credit terms.", "required": "Commercial master data extraction.", "source": "V1 §15, p.14"}, {"id": "g66", "section": "s15", "page": 14, "entity": "Operations", "unknown": "Warehouse layout, receiving, storage, picking, dispatch, pharmacy processes, gym/restaurant processes.", "required": "Operational walkthroughs.", "source": "V1 §15, p.14"}, {"id": "g67", "section": "s15", "page": 14, "entity": "Finance", "unknown": "Revenue, COGS, expenses, assets, liabilities, cash, bank, receivables, payables and P&L by entity.", "required": "Financial baseline.", "source": "V1 §15, p.14"}, {"id": "g68", "section": "s15", "page": 14, "entity": "Technology", "unknown": "Kabsula, POS, Excel files, accounting systems, integrations and data ownership.", "required": "Systems inspection.", "source": "V1 §15, p.14"}, {"id": "g69", "section": "s15", "page": 14, "entity": "Controls", "unknown": "Approvals, limits, reconciliations, inventory counts, audits, segregation of duties.", "required": "Control walkthroughs and evidence.", "source": "V1 §15, p.14"}, {"id": "g70", "section": "s15", "page": 14, "entity": "Contracts", "unknown": "Scientific-office arrangements, Turkey agreement, leases and major supplier/customer contracts.", "required": "Contract collection/review.", "source": "V1 §15, p.14"}, {"id": "g71", "section": "s15", "page": 14, "entity": "Performance", "unknown": "Current KPIs, targets, budgets and management reports.", "required": "Current reporting pack/data.", "source": "V1 §15, p.14"}], "section_notes": {"s1": "V1 is a current-state discovery document, not an audit. Red/unknown items are deliberately retained; unknown does not mean absent.", "s2": "Known portfolio and explicit legal/ownership/HQ/intercompany gaps.", "s3": "Depot purchasing, warehouse, sales/order fulfilment and explicit warehouse gaps.", "s4": "Scientific Office current responsibilities and missing commercial/regulatory/finance details.", "s5": "Four pharmacies, independent inventory/purchasing, Kabsula, POS, cash closing and inventory adjustment gaps.", "s6": "Centralized finance, owner-level authority, reporting and finance control gaps.", "s7": "Gym current state and missing commercial/system/financial details.", "s8": "Boulevard restaurant under construction and all explicit missing design/business-case information.", "s9": "Turkey arrangement current understanding and contract/regulatory/commercial gaps.", "s10": "Current governance roles, owner dependency and missing organization/authority documents.", "s11": "Current pharmaceutical, pharmacy, money and information end-to-end flows plus missing transaction evidence.", "s12": "Current-state control/management gaps and highest-priority discovery items.", "s13": "Brief target operating model: owner governs, managers operate, finance controls, systems record, reports inform.", "s14": "Recommended group structure concept: Owner → Shared Services → Business Managers → Operational Teams → Systems & Controls.", "s15": "Master gap register categories A–I.", "s16": "Eight-step discovery plan and success condition."}};
+const state = {mode:'current', type:'all', query:'', view:'group', selected:null, history:[], scale:1, tx:40, ty:40, editing:null};
+const USER_KEY='nael_operating_map_user_overlay_v1';
+let USER={};
+try{USER=JSON.parse(localStorage.getItem(USER_KEY)||'{}')}catch(e){USER={}}
+
+const colors = {material:'#4fb3ff',money:'#c68cff',information:'#68d6b0',authority:'#ffcf6e',system:'#6ecbff',inventory:'#ff8c8c',gap:'#ffb454'};
+const world = document.getElementById('world'), edges = document.getElementById('edges'), viewport = document.getElementById('viewport');
+const details = document.getElementById('details');
+
+function byId(id){return DATA.nodes.find(n=>n.id===id)}
+function modeOk(n){
+  if(state.mode==='current') return ['current','process','transaction','person','entity','finance','system','group'].includes(n.mode) && n.mode!=='tobe' && n.mode!=='gaps';
+  if(state.mode==='gaps') return n.mode==='gaps' || n.type==='gap';
+  return n.mode==='tobe';
+}
+function searchable(n){
+  const q=state.query.trim().toLowerCase(); if(!q)return true;
+  const hay=[n.label,n.summary,n.detail,n.section,n.page,n.owner,n.system,n.impact,n.control].filter(Boolean).join(' ').toLowerCase();
+  return hay.includes(q);
+}
+function visibleNodes(){
+  return DATA.nodes.filter(n=>{
+    if(!modeOk(n)) return false;
+    if(state.type!=='all' && n.type!==state.type) return false;
+    return searchable(n);
+  });
+}
+function setView(id,push=true){
+  if(push && state.view!==id) state.history.push(state.view);
+  state.view=id; state.selected=null; render();
+}
+function fitPositions(nodes){
+  const pos={};
+  if(state.view==='group'){
+    const layout={
+      group:[1040,90],owner:[760,60],'hq-current':[1320,70],finance:[780,250],ahmad:[1040,300],kabsula:[1300,270],'gaps-home':[1570,270],
+      depot:[350,270],scientific:[620,480],pharmacies:[980,480],gym:[1340,480],restaurant:[1600,480],turkey:[1870,480],
+      'tobe-governance':[980,760],'tobe-managers':[1260,760],'tobe-finance':[1540,760],'tobe-structure':[1260,930],
+      'tobe-newbiz':[1760,760],assessment:[380,760],'phase-plan':[620,930],
+      'depot-manager':[180,260],'sc-team':[180,390],'depot-finance':[400,390],'pharmacists':[850,610],
+      'gym-manager':[1280,610],'baghdad-manager':[540,610]
+    };
+    Object.assign(pos,layout);
+  } else if(state.view==='depot'){
+    const ids=['depot-demand','depot-purchasing','supplier','depot-receive','warehouse','depot-order','picking','depot-sales','finance','depot-manager','sc-team','depot-finance','tobe-depot'];
+    ids.forEach((id,i)=>pos[id]=[80+i*235,220]);
+    pos['depot-manager']=[120,420];pos['sc-team']=[380,420];pos['depot-finance']=[640,420];pos['tobe-depot']=[900,420];
+  } else if(state.view==='pharmacies'){
+    const ids=['pharm-demand','pharm-order','pharm-receive','pharm-sale','cash-close','pharm-fin'];
+    ids.forEach((id,i)=>pos[id]=[90+i*260,230]);
+    pos['kabsula']=[350,430];pos['pharm-adjust']=[850,430];pos['pharmacists']=[90,430];pos['finance']=[1370,430];pos['tobe-pharm']=[1370,610];
+  } else if(state.view==='finance'){
+    const ids=['cash-flow','supplier-pay','finance-report'];
+    ids.forEach((id,i)=>pos[id]=[220+i*330,250]);
+    pos['owner']=[950,470];pos['depot-sales']=[50,470];pos['finance']=[660,80];pos['tobe-finance']=[950,650];
+  } else if(state.view==='scientific'){
+    pos['scientific']=[80,240];pos['baghdad-manager']=[360,240];pos['tobe-scientific']=[650,240];pos['ahmad']=[940,240];
+  } else if(state.view==='gym'){
+    pos['gym']=[90,250];pos['gym-manager']=[360,250];pos['tobe-newbiz']=[650,250];pos['finance']=[940,250];
+  } else if(state.view==='restaurant'){
+    pos['restaurant']=[100,250];pos['tobe-newbiz']=[430,250];
+  } else if(state.view==='turkey'){
+    pos['turkey']=[100,250];pos['tobe-newbiz']=[500,250];
+  } else if(state.view==='organization'){
+    pos['owner']=[100,200];pos['ahmad']=[380,200];pos['depot-manager']=[660,200];pos['baghdad-manager']=[940,200];
+    pos['pharmacists']=[1220,200];pos['gym-manager']=[1500,200];pos['tobe-structure']=[720,520];pos['tobe-governance']=[420,520];pos['tobe-managers']=[1020,520];pos['tobe-finance']=[1320,520];
+  } else if(state.view==='flows'){
+    pos['depot-demand']=[80,180];pos['depot-purchasing']=[320,180];pos['supplier']=[560,180];pos['depot-receive']=[800,180];pos['warehouse']=[1040,180];pos['depot-order']=[1280,180];pos['picking']=[1520,180];pos['depot-sales']=[1760,180];
+    pos['pharm-demand']=[80,450];pos['pharm-order']=[320,450];pos['pharm-receive']=[560,450];pos['pharm-sale']=[800,450];pos['cash-close']=[1040,450];pos['pharm-fin']=[1280,450];pos['finance']=[1520,450];pos['owner']=[1760,450];
+    pos['ahmad']=[1050,720];
+  } else if(state.view==='gaps'){
+    const gs=DATA.gaps; gs.forEach((g,i)=>pos[g.id]=[70+(i%5)*450,120+Math.floor(i/5)*150]);
+  } else if(state.view==='tobe'){
+    pos['tobe-governance']=[100,230];pos['tobe-managers']=[430,230];pos['tobe-finance']=[760,230];pos['tobe-depot']=[1090,230];pos['tobe-pharm']=[1420,230];pos['tobe-scientific']=[1750,230];
+    pos['tobe-newbiz']=[760,500];pos['tobe-structure']=[1090,500];pos['phase-plan']=[1420,500];
+  }
+  // fallback grid for filtered/search-only nodes
+  nodes.forEach((n,i)=>{if(!pos[n.id])pos[n.id]=[80+(i%6)*310,900+Math.floor(i/6)*150]});
+  return pos;
+}
+function nodeFromGap(g){return {id:g.id,label:g.id+' · '+g.entity,type:'gap',mode:'gaps',section:g.section,page:g.page,summary:g.unknown,detail:g.required,owner:'MISSING / TO VERIFY',system:'MISSING / TO VERIFY',impact:'GAP',control:'Information required before final design.'}}
+function currentViewNodes(){
+  let base=visibleNodes();
+  if(state.view==='gaps') base=DATA.gaps.map(nodeFromGap).filter(searchable);
+  else {
+    const allowed = {
+      group:null,depot:['depot','depot-demand','depot-purchasing','supplier','depot-receive','warehouse','depot-order','picking','depot-sales','depot-manager','sc-team','depot-finance','finance','tobe-depot'],
+      pharmacies:['pharmacies','pharm-demand','pharm-order','pharm-receive','pharm-sale','cash-close','pharm-fin','pharm-adjust','pharmacists','kabsula','finance','tobe-pharm'],
+      finance:['finance','cash-flow','supplier-pay','finance-report','owner','depot-sales','tobe-finance'],
+      scientific:['scientific','baghdad-manager','tobe-scientific','ahmad'],
+      gym:['gym','gym-manager','tobe-newbiz','finance'],
+      restaurant:['restaurant','tobe-newbiz'],
+      turkey:['turkey','tobe-newbiz'],
+      organization:['owner','ahmad','depot-manager','baghdad-manager','pharmacists','gym-manager','tobe-structure','tobe-governance','tobe-managers','tobe-finance'],
+      flows:['depot-demand','depot-purchasing','supplier','depot-receive','warehouse','depot-order','picking','depot-sales','pharm-demand','pharm-order','pharm-receive','pharm-sale','cash-close','pharm-fin','finance','owner','ahmad'],
+      tobe:['tobe-governance','tobe-managers','tobe-finance','tobe-depot','tobe-pharm','tobe-scientific','tobe-newbiz','tobe-structure','phase-plan']
+    };
+    if(allowed[state.view]) base=base.filter(n=>allowed[state.view].includes(n.id));
+  }
+  return base;
+}
+function nodeSize(){return innerWidth<=700?190:210}
+function anchor(n,target){
+  const w=n._w||nodeSize(),h=n._h||82; const A={x:n.x,y:n.y,w,h},B={x:target.x,y:target.y,w:target._w||nodeSize(),h:target._h||82};
+  const ax=A.x+A.w/2, ay=A.y+A.h/2, bx=B.x+B.w/2, by=B.y+B.h/2;
+  if(Math.abs(bx-ax)>=Math.abs(by-ay)) return bx>=ax?{x:A.x+A.w,y:ay,side:'r'}:{x:A.x,y:ay,side:'l'};
+  return by>=ay?{x:ax,y:A.y+A.h,side:'b'}:{x:ax,y:A.y,side:'t'};
+}
+function route(a,b){
+  const A=anchor(a,b),B=anchor(b,a), gap=28;
+  if((A.side==='r'||A.side==='l')&&(B.side==='r'||B.side==='l')){const mid=(A.x+B.x)/2;return `M ${A.x} ${A.y} H ${mid} V ${B.y} H ${B.x}`;}
+  if((A.side==='t'||A.side==='b')&&(B.side==='t'||B.side==='b')){const mid=(A.y+B.y)/2;return `M ${A.x} ${A.y} V ${mid} H ${B.x} V ${B.y}`;}
+  const mx=A.side==='r'?A.x+gap:A.side==='l'?A.x-gap:A.x; const my=B.side==='b'?B.y+gap:B.side==='t'?B.y-gap:B.y;
+  if(A.side==='r'||A.side==='l') return `M ${A.x} ${A.y} H ${mx} V ${B.y} H ${B.x}`;
+  return `M ${A.x} ${A.y} V ${my} H ${B.x} V ${B.y}`;
+}
+function userOverlay(id){return USER[id]||null}
+function hasOverlay(id){const u=userOverlay(id);return !!(u&&Object.values(u).some(v=>String(v||'').trim()))}
+function overlayText(id){const u=userOverlay(id);if(!u)return '';return u.info||u.notes||''}
+function saveUser(){try{localStorage.setItem(USER_KEY,JSON.stringify(USER))}catch(e){}}
+
+function render(){
+  document.getElementById('mode').value=state.mode;
+  document.getElementById('typeFilter').value=state.type;
+  document.getElementById('search').value=state.query;
+  world.querySelectorAll('.node,.container,.view-title').forEach(e=>e.remove());
+  edges.querySelectorAll('.edge,.edge-label').forEach(e=>e.remove());
+  const nodes=currentViewNodes(), pos=fitPositions(nodes);
+  if(!nodes.length){world.insertAdjacentHTML('beforeend','<div class="empty" style="position:absolute;inset:0;width:100vw">No matching nodes in this mode/filter.</div>');renderSidebar();return}
+  const groups={};
+  nodes.forEach(n=>{
+    const p=pos[n.id]; if(!p)return;
+    n.x=p[0];n.y=p[1];
+    const el=document.createElement('div');el.className='node '+n.type;
+    el.dataset.id=n.id;el.style.left=n.x+'px';el.style.top=n.y+'px';
+    const modeClass=n.mode==='tobe'?'tobe':n.mode==='gaps'?'gaps':'current';
+    el.innerHTML=`<div class="title">${esc(n.label)}</div><div class="meta"><span class="pill ${modeClass}">${modeClass.toUpperCase()}</span><span class="pill">§${n.section?.replace('s','')||''} · p.${n.page||''}</span>${hasOverlay(n.id)?'<span class="pill" style="color:#8dd694">EDITED</span>':''}</div>`;
+    el.onclick=()=>select(n.id);
+    if(state.selected===n.id)el.classList.add('selected');
+    world.appendChild(el);
+  });
+  // route only connections whose endpoints are in view
+  const ids=new Set(nodes.map(n=>n.id));
+  DATA.connections.forEach(([from,to,type])=>{
+    if(!ids.has(from)||!ids.has(to))return;
+    const a=nodes.find(n=>n.id===from),b=nodes.find(n=>n.id===to);
+    const path=document.createElementNS('http://www.w3.org/2000/svg','path');
+    path.setAttribute('d',route(a,b));path.setAttribute('class','edge '+type);
+    path.setAttribute('marker-end',`url(#arrow-${type})`);
+    if(state.selected && state.selected!==from && state.selected!==to)path.classList.add('dim');
+    if(state.selected && (state.selected===from||state.selected===to))path.classList.add('highlight');
+    edges.appendChild(path);
+  });
+  renderSidebar(); renderDetails();
+}
+function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+function select(id){
+  const n = byId(id);
+  if(state.view==='group' && n && ['depot','scientific','pharmacies','finance','gym','restaurant','turkey'].includes(id)){
+    const target = {depot:'depot',scientific:'scientific',pharmacies:'pharmacies',finance:'finance',gym:'gym',restaurant:'restaurant',turkey:'turkey'}[id];
+    state.history.push(state.view); state.view=target; state.selected=id; render();
+  } else { state.selected=id; render(); }
+  if(innerWidth<1000)details.classList.add('open')
+}
+function renderDetails(){
+  let n=state.selected ? byId(state.selected) : null;
+  if(!n && state.selected && state.view==='gaps'){
+    const g=DATA.gaps.find(x=>x.id===state.selected);
+    if(g)n=nodeFromGap(g);
+  }
+  if(!n){details.innerHTML=`<div class="empty">Select a node to inspect its V1-supported details.<br><br>Click any entity, process, transaction, person, system or GAP.</div>`;return}
+  const connected=DATA.connections.filter(c=>c[0]===n.id||c[1]===n.id);
+  const connNames=connected.map(c=>`${c[0]===n.id?'→':'←'} ${esc(byId(c[0]===n.id?c[1]:c[0])?.label||'')} <span class="pill">${c[2]}</span>`).join('<br>');
+  details.innerHTML=`
+    <div class="path"><span class="crumb" onclick="setView('group',true)">Home</span> / <span>${esc(n.label)}</span></div>
+    <h2>${esc(n.label)}</h2>
+    <div class="source">Source: NAEL V1 — Section ${esc(n.section?.replace('s',''))} + Page ${n.page}</div>
+    <div class="mode-note"><b>${n.mode==='tobe'?'TO-BE':n.mode==='gaps'?'GAP':'CURRENT'}</b> · ${esc(n.summary||'')}</div><div class="action-row"><button class="btn small active" onclick="openEditor('${n.id}')">✎ Edit / Fill Gap</button><button class="btn small" onclick="details.classList.remove('open')">Close</button></div>
+    <h3>Details</h3><div class="detail-box">${esc(n.detail||'')}</div>
+    <h3>Transaction / responsibility fields</h3>
+    <div class="detail-box"><div class="kv"><b>Who</b><span>${esc(n.owner||'Not specified in V1')}</span><b>System</b><span>${esc(n.system||'Not specified in V1')}</span><b>Impact</b><span>${esc(n.impact||'Not specified in V1')}</span><b>Control</b><span>${esc(n.control||'Not specified in V1')}</span></div></div>
+    ${hasOverlay(n.id)?`<h3>User-entered verification</h3><div class="detail-box user-note"><div class="kv"><b>Status</b><span>${esc(userOverlay(n.id).status||'')}</span><b>By</b><span>${esc(userOverlay(n.id).owner||'')}</span><b>Evidence</b><span>${esc(userOverlay(n.id).evidence||'')}</span></div><hr style="border:0;border-top:1px solid #293650;margin:10px 0"><div>${esc(userOverlay(n.id).info||'')}</div>${userOverlay(n.id).notes?`<div style="margin-top:8px;color:#aab6ca">${esc(userOverlay(n.id).notes)}</div>`:''}</div>`:''}<h3>Connected paths</h3><div class="detail-box">${connNames||'No direct connection recorded for this node in the current view.'}</div>
+    <h3>Traceability</h3><div class="detail-box">NAEL Almnhal — Business & Operations Book | V1 · §${esc(n.section?.replace('s',''))} · p.${n.page}. V1 is a current-state discovery baseline; unknown items remain unknown.</div>
+  `;
+}
+function openEditor(id){
+  state.editing=id; const n=byId(id)||nodeFromGap(DATA.gaps.find(g=>g.id===id)||{}); const u=userOverlay(id)||{};
+  document.getElementById('editorTitle').textContent='Edit / Fill Gap — '+(n?.label||id);
+  document.getElementById('editorSubtitle').textContent=`V1 remains unchanged. Your entry is stored as a separate overlay. Source: §${n?.section?.replace('s','')} · p.${n?.page}`;
+  document.getElementById('editStatus').value=u.status||'open';document.getElementById('editOwner').value=u.owner||'';document.getElementById('editInfo').value=u.info||'';document.getElementById('editEvidence').value=u.evidence||'';document.getElementById('editNotes').value=u.notes||'';
+  editorModal.classList.add('open');editorModal.setAttribute('aria-hidden','false');setTimeout(()=>document.getElementById('editInfo').focus(),50);
+}
+function closeEditor(){state.editing=null;editorModal.classList.remove('open');editorModal.setAttribute('aria-hidden','true')}
+document.getElementById('saveEdit').onclick=()=>{if(!state.editing)return;USER[state.editing]={status:editStatus.value,owner:editOwner.value,info:editInfo.value,evidence:editEvidence.value,notes:editNotes.value,updated:new Date().toISOString()};saveUser();closeEditor();render()};
+document.getElementById('clearEdit').onclick=()=>{if(!state.editing)return;delete USER[state.editing];saveUser();closeEditor();render()};
+document.getElementById('cancelEdit').onclick=closeEditor;
+editorModal.addEventListener('click',e=>{if(e.target===editorModal)closeEditor()});
+function coverageStatus(){
+  return DATA.sections.map(s=>{
+    const nodeHit=DATA.nodes.some(n=>n.section===s.id);
+    const gapHit=DATA.gaps.some(g=>g.section===s.id);
+    return {id:s.id,ok:nodeHit||gapHit,nodeHit,gapHit};
+  });
+}
+function renderSidebar(){
+  const sb=document.getElementById('sidebar');
+  const views=[
+    ['group','⌂ Group Map'],['depot','Pharmaceutical Depot'],['scientific','Scientific Office'],
+    ['pharmacies','4 Pharmacies'],['finance','Finance / Treasury'],['gym','Gym'],['restaurant','Boulevard Restaurant'],
+    ['turkey','Turkey Arrangement'],['organization','Organization / Governance'],['flows','End-to-End Flows'],
+    ['tobe','TO-BE Model'],['gaps','GAP Register']
+  ];
+  sb.innerHTML=`<div class="side-title">Maps</div>`+views.map(([id,label])=>`<button class="nav-item ${state.view===id?'active':''}" onclick="setView('${id}')">${label}</button>`).join('')+
+    `<div class="side-title">Traceability</div><div class="mode-note">${DATA.source}<br>${DATA.version}<br><br>All 16 sections represented below. V1 gaps are not inferred as absence.</div>
+    <div class="side-title">Flow Legend</div><div class="legend">
+      <div><span class="dot" style="background:var(--material)"></span>Material / Product</div>
+      <div><span class="dot" style="background:var(--money)"></span>Money</div>
+      <div><span class="dot" style="background:var(--information)"></span>Information</div>
+      <div><span class="dot" style="background:var(--authority)"></span>Authority</div>
+      <div><span class="dot" style="background:var(--system)"></span>System / Data</div>
+      <div><span class="dot" style="background:var(--gap)"></span>Gap</div>
+    </div>
+    <div class="side-title">16-Section Coverage</div><div class="coverage">${DATA.sections.map(s=>{const c=coverageStatus().find(x=>x.id===s.id);return `<div class="sec ${c.ok?'ok':'gap'}" title="${esc(DATA.section_notes[s.id])}">§${s.n} ${esc(s.title)} · ${c.ok?'✓':'GAP'}</div>`}).join('')}</div>
+    <div class="side-title">Gap Count</div><div class="mode-note"><b>${DATA.gaps.length}</b> explicit GAP records captured from V1, plus the broader gap categories in §15.</div>`;
+}
+function openSectionMap(sec){
+  const map={'s3':'depot','s4':'scientific','s5':'pharmacies','s6':'finance','s7':'gym','s8':'restaurant','s9':'turkey','s10':'organization','s11':'flows','s13':'tobe','s15':'gaps'};
+  setView(map[sec]||'group');
+}
+document.getElementById('homeBtn').onclick=()=>setView('group');
+document.getElementById('backBtn').onclick=()=>{if(state.history.length){state.view=state.history.pop();state.selected=null;render()}};
+document.getElementById('mode').onchange=e=>{state.mode=e.target.value;state.view=state.mode==='gaps'?'gaps':state.mode==='tobe'?'tobe':'group';state.selected=null;render()};
+document.getElementById('typeFilter').onchange=e=>{state.type=e.target.value;render()};
+document.getElementById('search').oninput=e=>{state.query=e.target.value;render()};
+document.getElementById('detailsBtn').onclick=()=>details.classList.toggle('open');
+document.getElementById('dataBtn').onclick=()=>{const a=document.createElement('a');a.href='data:application/json;charset=utf-8,'+encodeURIComponent(JSON.stringify(USER,null,2));a.download='NAEL_V1_user_updates.json';a.click()};
+
+function applyTransform(){world.style.transform=`translate(${state.tx}px,${state.ty}px) scale(${state.scale})`;document.getElementById('zoomReset').textContent=Math.round(state.scale*100)+'%'}
+function fitMap(){const ns=[...world.querySelectorAll('.node')];if(!ns.length)return;const vw=viewport.clientWidth,vh=viewport.clientHeight;const minX=Math.min(...ns.map(e=>parseFloat(e.style.left))),minY=Math.min(...ns.map(e=>parseFloat(e.style.top))),maxX=Math.max(...ns.map(e=>parseFloat(e.style.left)+e.offsetWidth)),maxY=Math.max(...ns.map(e=>parseFloat(e.style.top)+e.offsetHeight));const pad=45;const sx=(vw-pad*2)/(maxX-minX),sy=(vh-pad*2)/(maxY-minY);state.scale=Math.max(.22,Math.min(1.25,sx,sy));state.tx=(vw-(maxX+minX)*state.scale)/2;state.ty=(vh-(maxY+minY)*state.scale)/2;applyTransform()}
+document.getElementById('zoomIn').onclick=()=>{state.scale=Math.min(2.5,state.scale*1.18);applyTransform()};
+document.getElementById('zoomOut').onclick=()=>{state.scale=Math.max(.22,state.scale/1.18);applyTransform()};
+document.getElementById('zoomReset').onclick=()=>{state.scale=1;state.tx=40;state.ty=40;applyTransform()};
+document.getElementById('fitBtn').onclick=fitMap;
+let dragging=false,sx=0,sy=0,ox=0,oy=0,pointers=new Map(),pinchStart=0,pinchScale=1;
+viewport.addEventListener('pointerdown',e=>{pointers.set(e.pointerId,e);if(e.target.closest('.node')&&pointers.size===1)return;if(pointers.size===1){dragging=true;viewport.setPointerCapture(e.pointerId);sx=e.clientX;sy=e.clientY;ox=state.tx;oy=state.ty}if(pointers.size===2){dragging=false;const ps=[...pointers.values()];pinchStart=Math.hypot(ps[0].clientX-ps[1].clientX,ps[0].clientY-ps[1].clientY);pinchScale=state.scale}});
+viewport.addEventListener('pointermove',e=>{if(!pointers.has(e.pointerId))return;pointers.set(e.pointerId,e);if(pointers.size===2){const ps=[...pointers.values()];const d=Math.hypot(ps[0].clientX-ps[1].clientX,ps[0].clientY-ps[1].clientY);state.scale=Math.max(.22,Math.min(2.5,pinchScale*(d/pinchStart)));applyTransform();return}if(!dragging)return;state.tx=ox+(e.clientX-sx);state.ty=oy+(e.clientY-sy);applyTransform()});
+function endPointer(e){pointers.delete(e.pointerId);dragging=false;if(viewport.hasPointerCapture(e.pointerId))viewport.releasePointerCapture(e.pointerId)}viewport.addEventListener('pointerup',endPointer);viewport.addEventListener('pointercancel',endPointer);
+viewport.addEventListener('wheel',e=>{e.preventDefault();state.scale=Math.max(.45,Math.min(2.2,state.scale*(e.deltaY<0?1.08:.92)));applyTransform()},{passive:false});
+
+window.addEventListener('keydown',e=>{if(e.key==='Escape'){if(editorModal.classList.contains('open'))closeEditor();else{state.selected=null;details.classList.remove('open');render()}} if(e.key==='+'||e.key==='='){state.scale=Math.min(2.2,state.scale*1.15);applyTransform()} if(e.key==='-'){state.scale=Math.max(.45,state.scale/1.15);applyTransform()}});
+render();applyTransform();setTimeout(fitMap,50);
+</script>
+</body>
+</html>
